@@ -1,35 +1,65 @@
-import React, { useState } from 'react';
-import { Container, TextField, Button, Typography } from '@mui/material';
-import api from "../services/api";
+import React, {useEffect, useState} from 'react';
+import {Container, TextField, Button, Typography} from '@mui/material';
+import api, {RegisterPayload} from "../services/api";
+import QRCode from 'react-qr-code'
+import * as mfkdf from '../utils/crypto/mfkdf/mfkdf.min'
+import {Buffer} from 'buffer'
+// @ts-ignore
+import * as jsotp from 'jsotp'
 
 export interface RegistrationState {
     email: string;
+    password: string;
     masterKey: string;
     policy: string;
 }
 
 export default function Registration() {
+    const [qr, setQr] = useState<string>()
+
     const [state, setState] = useState<RegistrationState>({
-        email: '',
+        email: 'test@email.com',
+        password: 'qwertyu',
         masterKey: '',
         policy: '',
     });
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, value } = e.target;
-        setState(prevState => ({ ...prevState, [name]: value }));
+        const {name, value} = e.target;
+        setState(prevState => ({...prevState, [name]: value}));
     };
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+
+        const b32_secret = jsotp.Base32.random_gen();
+        setQr(`otpauth://totp/Shary:${state.email}?secret=${b32_secret}`)
+
+
+        const setup = await mfkdf.setup.key([
+            await mfkdf.setup.factors.password(state.password),
+            await mfkdf.setup.factors.totp({ secret: Buffer.from(b32_secret) }),
+        ], { size: 32 })
+
+        const payload: RegisterPayload = {
+            email: state.email,
+            password: state.password,
+            masterKey: setup.key.toString('hex'),
+            mfkdfpolicy: {
+                policy: JSON.stringify(setup.policy)
+            }
+        };
+
         try {
-            await api.register(state);
+            await api.register(payload);
             alert('Registration successful');
         } catch (error) {
             console.error('Registration failed:', error);
             alert('Registration failed');
         }
     };
+
+
 
     return (
         <Container component="main" maxWidth="xs">
@@ -52,24 +82,13 @@ export default function Registration() {
                     margin="normal"
                     required
                     fullWidth
-                    label="Master Key"
+                    label="Password"
                     type="password"
-                    name="masterKey"
-                    value={state.masterKey}
+                    name="password"
+                    value={state.password}
                     onChange={handleChange}
                 />
-                <TextField
-                    variant="outlined"
-                    margin="normal"
-                    required
-                    fullWidth
-                    label="MFKDF Policy JSON"
-                    name="policy"
-                    multiline
-                    rows={4}
-                    value={state.policy}
-                    onChange={handleChange}
-                />
+                {qr && <QRCode value={qr}/>}
                 <Button type="submit" fullWidth variant="contained" color="primary">
                     Register
                 </Button>

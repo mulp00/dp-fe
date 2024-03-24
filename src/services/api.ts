@@ -1,11 +1,12 @@
 import axios, {AxiosInstance} from 'axios';
 import {RegistrationState} from "../Pages/Register";
 
-interface RegisterPayload {
+export interface RegisterPayload {
     email: string;
+    password: string;
     masterKey: string;
     mfkdfpolicy: {
-        policy: ""
+        policy: string
     };
 }
 
@@ -46,10 +47,8 @@ class ApiService {
         );
     }
 
-    public async register(payload: RegistrationState): Promise<any> {
-        return this.axiosInstance.post('/auth/register', {email: payload.email, masterKey: payload.masterKey, mfkdfpolicy: {
-                policy: payload.policy
-            }}, {
+    public async register(payload: RegisterPayload): Promise<any> {
+        return this.axiosInstance.post('/auth/register', payload, {
             headers: {
                 "Content-type": "application/ld+json"
             }
