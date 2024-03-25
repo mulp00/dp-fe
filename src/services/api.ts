@@ -9,13 +9,30 @@ export interface RegisterPayload {
         policy: string
     };
 }
+export interface LoginPayload {
+    email: string;
+    masterKeyHash: string;
+}
+
+interface LoginResponse {
+    token: string;
+}
+
+export interface GetPolicyPayload {
+    email: string;
+}
+
+interface GetPolicyResponse {
+    policy: string;
+}
 
 class ApiService {
     private axiosInstance: AxiosInstance;
 
     constructor() {
         this.axiosInstance = axios.create({
-            baseURL: 'https://localhost/', // Replace with your actual API base URL
+            baseURL: 'https://localhost/',
+            // withCredentials: true, TODO
         });
 
         this.initializeInterceptors();
@@ -55,12 +72,22 @@ class ApiService {
         });
     }
 
-    // Example: Login method
-    // public async login(email: string, password: string): Promise<any> {
-    //   return this.axiosInstance.post('/auth/login', { email, password });
-    // }
+    public async login(payload: LoginPayload): Promise<LoginResponse> {
+        return this.axiosInstance.post<LoginResponse>('/auth/login', payload, {
+            headers: {
+                "Content-type": "application/json"
+            }
+        }).then(response => response.data);
+    }
 
-    // Add more methods as needed
+    public async getPolicy(payload: GetPolicyPayload): Promise<GetPolicyResponse> {
+        const encodedEmail = encodeURIComponent(payload.email);
+        return this.axiosInstance.get<GetPolicyResponse>(`/auth/user/${encodedEmail}/policy`, {
+            headers: {
+                "Content-type": "application/ld+json"
+            }
+        }).then(response => response.data);
+    }
 }
 
 const apiService = new ApiService();

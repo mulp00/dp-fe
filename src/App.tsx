@@ -1,19 +1,23 @@
 import React from 'react';
-import {BrowserRouter as Router, Route, Routes} from 'react-router-dom';
-import {Register} from './Pages'
+import {Route, Routes, BrowserRouter} from 'react-router-dom';
+import {Login, Register} from './Pages'
+import {Layout} from "./Components";
 // Import other components like Home and Login
+import * as mfkdf from './utils/crypto/mfkdf/mfkdf.min'
 
-const App: React.FC = () => {
-  return (
-      <Router>
-        <Routes>
-          <Route index path="/" element={<Register/>} />
-          {/* Define routes for other components like Home and Login */}
-          {/* <Route path="/login" component={Login} /> */}
-          {/* <Route path="/" component={Home} /> */}
-        </Routes>
-      </Router>
-  );
-};
 
-export default App;
+export default function App() {
+
+
+
+    return (
+        <BrowserRouter>
+            <Routes>
+                <Route path="/" element={<Layout />}>
+                    <Route index path="register" element={<Register/>} />
+                    <Route path="login" element={<Login />} />
+                </Route>
+            </Routes>
+        </BrowserRouter>
+    );
+}

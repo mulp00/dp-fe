@@ -32,14 +32,12 @@ export default function Registration() {
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
-        const b32_secret = jsotp.Base32.random_gen();
-        setQr(`otpauth://totp/Shary:${state.email}?secret=${b32_secret}`)
-
-
         const setup = await mfkdf.setup.key([
             await mfkdf.setup.factors.password(state.password),
-            await mfkdf.setup.factors.totp({ secret: Buffer.from(b32_secret) }),
+            await mfkdf.setup.factors.totp(),
         ], { size: 32 })
+
+        setQr(setup.outputs.totp.uri)
 
         const payload: RegisterPayload = {
             email: state.email,
