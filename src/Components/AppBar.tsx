@@ -4,7 +4,7 @@ import { AppBar, Box, Toolbar, IconButton, Typography, Menu, Container, Avatar, 
 import MenuIcon from '@mui/icons-material/Menu';
 import AdbIcon from '@mui/icons-material/Adb';
 
-const pages = ['Login', 'Register'];
+const pages = ['Login', 'Register', 'Mls'];
 const settings = ['Profile', 'Account', 'Dashboard', 'Logout'];
 
 const ResponsiveAppBar = () => {
@@ -106,22 +106,24 @@ const ResponsiveAppBar = () => {
                     >
                         LOGO
                     </Typography>
-                    <Box sx={{ flexGrow: 1, display: { xs: 'none', md: 'flex' } }}>
-                        {pages.map((page) => (
-                            <Button
-                                key={page}
-                                sx={{ my: 2, color: 'white', display: 'block' }}
-                                component={NavLink}
-                                to={`/${page.replace(/\s+/g, '').toLowerCase()}`}
-                                // Active style
-                                style={({ isActive }) => ({
-                                    textDecoration: isActive ? 'underline' : 'none',
-                                })}
-                            >
-                                {page}
-                            </Button>
-                        ))}
-                    </Box>
+                    {pages.map((page) => (
+                        <Button
+                            key={page}
+                            sx={{ my: 2, color: 'white', display: 'block' }}
+                            component={React.forwardRef((props, ref) => (
+                                <NavLink
+                                    to={`/${page.replace(/\s+/g, '').toLowerCase()}`}
+                                    style={({ isActive }) => ({
+                                        textDecoration: isActive ? 'underline' : 'none',
+                                    })}
+                                    {...props}
+                                />
+                            ))}
+                        >
+                            {page}
+                        </Button>
+                    ))}
+
 
                     <Box sx={{ flexGrow: 0 }}>
                         <Tooltip title="Open settings">
