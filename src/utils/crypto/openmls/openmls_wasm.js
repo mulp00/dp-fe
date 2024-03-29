@@ -370,14 +370,14 @@ function handleError(f, args) {
         wasm.__wbindgen_exn_store(addHeapObject(e));
     }
 }
-function __wbg_adapter_110(arg0, arg1, arg2, arg3, arg4) {
+function __wbg_adapter_115(arg0, arg1, arg2, arg3, arg4) {
     _assertNum(arg0);
     _assertNum(arg1);
     _assertNum(arg3);
     wasm.wasm_bindgen__convert__closures__invoke3_mut__h367e4c38e8f2a4ce(arg0, arg1, addHeapObject(arg2), arg3, addHeapObject(arg4));
 }
 
-function __wbg_adapter_125(arg0, arg1, arg2, arg3) {
+function __wbg_adapter_130(arg0, arg1, arg2, arg3) {
     _assertNum(arg0);
     _assertNum(arg1);
     wasm.wasm_bindgen__convert__closures__invoke2_mut__hf798eaf28bc95219(arg0, arg1, addHeapObject(arg2), addHeapObject(arg3));
@@ -530,7 +530,7 @@ export class Group {
     * @param {KeyPackage} new_member
     * @returns {AddMessages}
     */
-    propose_and_commit_add(provider, sender, new_member) {
+    add_member(provider, sender, new_member) {
         try {
             if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
             const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
@@ -547,7 +547,7 @@ export class Group {
             if (new_member.__wbg_ptr === 0) {
                 throw new Error('Attempt to use a moved value');
             }
-            wasm.group_propose_and_commit_add(retptr, this.__wbg_ptr, provider.__wbg_ptr, sender.__wbg_ptr, new_member.__wbg_ptr);
+            wasm.group_add_member(retptr, this.__wbg_ptr, provider.__wbg_ptr, sender.__wbg_ptr, new_member.__wbg_ptr);
             var r0 = getInt32Memory0()[retptr / 4 + 0];
             var r1 = getInt32Memory0()[retptr / 4 + 1];
             var r2 = getInt32Memory0()[retptr / 4 + 2];
@@ -555,6 +555,72 @@ export class Group {
                 throw takeObject(r1);
             }
             return AddMessages.__wrap(r0);
+        } finally {
+            wasm.__wbindgen_add_to_stack_pointer(16);
+        }
+    }
+    /**
+    * @param {Provider} provider
+    * @param {Identity} sender
+    * @param {LeafNodeIndex} removed_member
+    * @returns {RemoveMessages}
+    */
+    remove_member(provider, sender, removed_member) {
+        try {
+            if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
+            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+            _assertNum(this.__wbg_ptr);
+            _assertClass(provider, Provider);
+            if (provider.__wbg_ptr === 0) {
+                throw new Error('Attempt to use a moved value');
+            }
+            _assertClass(sender, Identity);
+            if (sender.__wbg_ptr === 0) {
+                throw new Error('Attempt to use a moved value');
+            }
+            _assertClass(removed_member, LeafNodeIndex);
+            if (removed_member.__wbg_ptr === 0) {
+                throw new Error('Attempt to use a moved value');
+            }
+            var ptr0 = removed_member.__destroy_into_raw();
+            wasm.group_remove_member(retptr, this.__wbg_ptr, provider.__wbg_ptr, sender.__wbg_ptr, ptr0);
+            var r0 = getInt32Memory0()[retptr / 4 + 0];
+            var r1 = getInt32Memory0()[retptr / 4 + 1];
+            var r2 = getInt32Memory0()[retptr / 4 + 2];
+            if (r2) {
+                throw takeObject(r1);
+            }
+            return RemoveMessages.__wrap(r0);
+        } finally {
+            wasm.__wbindgen_add_to_stack_pointer(16);
+        }
+    }
+    /**
+    * @param {Provider} provider
+    * @param {Identity} sender
+    * @returns {RemoveMessages}
+    */
+    update_key_package(provider, sender) {
+        try {
+            if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
+            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+            _assertNum(this.__wbg_ptr);
+            _assertClass(provider, Provider);
+            if (provider.__wbg_ptr === 0) {
+                throw new Error('Attempt to use a moved value');
+            }
+            _assertClass(sender, Identity);
+            if (sender.__wbg_ptr === 0) {
+                throw new Error('Attempt to use a moved value');
+            }
+            wasm.group_update_key_package(retptr, this.__wbg_ptr, provider.__wbg_ptr, sender.__wbg_ptr);
+            var r0 = getInt32Memory0()[retptr / 4 + 0];
+            var r1 = getInt32Memory0()[retptr / 4 + 1];
+            var r2 = getInt32Memory0()[retptr / 4 + 2];
+            if (r2) {
+                throw takeObject(r1);
+            }
+            return RemoveMessages.__wrap(r0);
         } finally {
             wasm.__wbindgen_add_to_stack_pointer(16);
         }
@@ -644,6 +710,31 @@ export class Group {
             var v3 = getArrayU8FromWasm0(r0, r1).slice();
             wasm.__wbindgen_free(r0, r1 * 1, 1);
             return v3;
+        } finally {
+            wasm.__wbindgen_add_to_stack_pointer(16);
+        }
+    }
+    /**
+    * @param {KeyPackage} member
+    * @returns {LeafNodeIndex}
+    */
+    get_member_index(member) {
+        try {
+            if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
+            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+            _assertNum(this.__wbg_ptr);
+            _assertClass(member, KeyPackage);
+            if (member.__wbg_ptr === 0) {
+                throw new Error('Attempt to use a moved value');
+            }
+            wasm.group_get_member_index(retptr, this.__wbg_ptr, member.__wbg_ptr);
+            var r0 = getInt32Memory0()[retptr / 4 + 0];
+            var r1 = getInt32Memory0()[retptr / 4 + 1];
+            var r2 = getInt32Memory0()[retptr / 4 + 2];
+            if (r2) {
+                throw takeObject(r1);
+            }
+            return LeafNodeIndex.__wrap(r0);
         } finally {
             wasm.__wbindgen_add_to_stack_pointer(16);
         }
@@ -855,6 +946,38 @@ export class KeyPackage {
     }
 }
 
+const LeafNodeIndexFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_leafnodeindex_free(ptr >>> 0));
+/**
+*/
+export class LeafNodeIndex {
+
+    constructor() {
+        throw new Error('cannot invoke `new` directly');
+    }
+
+    static __wrap(ptr) {
+        ptr = ptr >>> 0;
+        const obj = Object.create(LeafNodeIndex.prototype);
+        obj.__wbg_ptr = ptr;
+        LeafNodeIndexFinalization.register(obj, obj.__wbg_ptr, obj);
+        return obj;
+    }
+
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        LeafNodeIndexFinalization.unregister(this);
+        return ptr;
+    }
+
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_leafnodeindex_free(ptr);
+    }
+}
+
 const NoWelcomeErrorFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_nowelcomeerror_free(ptr >>> 0));
@@ -935,6 +1058,56 @@ export class RatchetTree {
     free() {
         const ptr = this.__destroy_into_raw();
         wasm.__wbg_ratchettree_free(ptr);
+    }
+}
+
+const RemoveMessagesFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_removemessages_free(ptr >>> 0));
+/**
+*/
+export class RemoveMessages {
+
+    constructor() {
+        throw new Error('cannot invoke `new` directly');
+    }
+
+    static __wrap(ptr) {
+        ptr = ptr >>> 0;
+        const obj = Object.create(RemoveMessages.prototype);
+        obj.__wbg_ptr = ptr;
+        RemoveMessagesFinalization.register(obj, obj.__wbg_ptr, obj);
+        return obj;
+    }
+
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        RemoveMessagesFinalization.unregister(this);
+        return ptr;
+    }
+
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_removemessages_free(ptr);
+    }
+    /**
+    * @returns {Uint8Array}
+    */
+    get commit() {
+        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
+        _assertNum(this.__wbg_ptr);
+        const ret = wasm.removemessages_commit(this.__wbg_ptr);
+        return takeObject(ret);
+    }
+    /**
+    * @returns {Uint8Array | undefined}
+    */
+    get welcome() {
+        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
+        _assertNum(this.__wbg_ptr);
+        const ret = wasm.removemessages_welcome(this.__wbg_ptr);
+        return takeObject(ret);
     }
 }
 
@@ -1221,7 +1394,7 @@ function __wbg_get_imports() {
                 const a = state0.a;
                 state0.a = 0;
                 try {
-                    return __wbg_adapter_110(a, state0.b, arg0, arg1, arg2);
+                    return __wbg_adapter_115(a, state0.b, arg0, arg1, arg2);
                 } finally {
                     state0.a = a;
                 }
@@ -1262,7 +1435,7 @@ function __wbg_get_imports() {
                 const a = state0.a;
                 state0.a = 0;
                 try {
-                    return __wbg_adapter_125(a, state0.b, arg0, arg1);
+                    return __wbg_adapter_130(a, state0.b, arg0, arg1);
                 } finally {
                     state0.a = a;
                 }
@@ -1342,8 +1515,8 @@ function __wbg_get_imports() {
         const ret = wasm.memory;
         return addHeapObject(ret);
     };
-    imports.wbg.__wbindgen_closure_wrapper14742 = function() { return logError(function (arg0, arg1, arg2) {
-        const ret = makeMutClosure(arg0, arg1, 895, __wbg_adapter_30);
+    imports.wbg.__wbindgen_closure_wrapper14842 = function() { return logError(function (arg0, arg1, arg2) {
+        const ret = makeMutClosure(arg0, arg1, 897, __wbg_adapter_30);
         return addHeapObject(ret);
     }, arguments) };
 

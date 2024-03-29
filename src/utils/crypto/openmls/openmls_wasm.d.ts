@@ -72,7 +72,20 @@ export class Group {
 * @param {KeyPackage} new_member
 * @returns {AddMessages}
 */
-  propose_and_commit_add(provider: Provider, sender: Identity, new_member: KeyPackage): AddMessages;
+  add_member(provider: Provider, sender: Identity, new_member: KeyPackage): AddMessages;
+/**
+* @param {Provider} provider
+* @param {Identity} sender
+* @param {LeafNodeIndex} removed_member
+* @returns {RemoveMessages}
+*/
+  remove_member(provider: Provider, sender: Identity, removed_member: LeafNodeIndex): RemoveMessages;
+/**
+* @param {Provider} provider
+* @param {Identity} sender
+* @returns {RemoveMessages}
+*/
+  update_key_package(provider: Provider, sender: Identity): RemoveMessages;
 /**
 * @param {Provider} provider
 */
@@ -91,6 +104,11 @@ export class Group {
 * @returns {Uint8Array}
 */
   export_key(provider: Provider, label: string, context: Uint8Array, key_length: number): Uint8Array;
+/**
+* @param {KeyPackage} member
+* @returns {LeafNodeIndex}
+*/
+  get_member_index(member: KeyPackage): LeafNodeIndex;
 /**
 * @returns {string}
 */
@@ -133,6 +151,11 @@ export class KeyPackage {
 }
 /**
 */
+export class LeafNodeIndex {
+  free(): void;
+}
+/**
+*/
 export class NoWelcomeError {
   free(): void;
 }
@@ -148,6 +171,17 @@ export class Provider {
 */
 export class RatchetTree {
   free(): void;
+}
+/**
+*/
+export class RemoveMessages {
+  free(): void;
+/**
+*/
+  readonly commit: Uint8Array;
+/**
+*/
+  readonly welcome: Uint8Array | undefined;
 }
 /**
 * Runtime test harness support instantiated in JS.
@@ -191,6 +225,7 @@ export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembl
 
 export interface InitOutput {
   readonly memory: WebAssembly.Memory;
+  readonly __wbg_leafnodeindex_free: (a: number) => void;
   readonly __wbg_provider_free: (a: number) => void;
   readonly provider_new: () => number;
   readonly greet: () => void;
@@ -201,15 +236,21 @@ export interface InitOutput {
   readonly identity_deserialize: (a: number, b: number, c: number, d: number) => void;
   readonly __wbg_group_free: (a: number) => void;
   readonly __wbg_addmessages_free: (a: number) => void;
+  readonly __wbg_removemessages_free: (a: number) => void;
   readonly addmessages_commit: (a: number) => number;
   readonly addmessages_welcome: (a: number) => number;
+  readonly removemessages_commit: (a: number) => number;
+  readonly removemessages_welcome: (a: number) => number;
   readonly group_create_new: (a: number, b: number, c: number, d: number) => number;
   readonly group_join: (a: number, b: number, c: number, d: number, e: number) => void;
   readonly group_export_ratchet_tree: (a: number) => number;
-  readonly group_propose_and_commit_add: (a: number, b: number, c: number, d: number, e: number) => void;
+  readonly group_add_member: (a: number, b: number, c: number, d: number, e: number) => void;
+  readonly group_remove_member: (a: number, b: number, c: number, d: number, e: number) => void;
+  readonly group_update_key_package: (a: number, b: number, c: number, d: number) => void;
   readonly group_merge_pending_commit: (a: number, b: number, c: number) => void;
   readonly group_process_message: (a: number, b: number, c: number, d: number, e: number) => void;
   readonly group_export_key: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number) => void;
+  readonly group_get_member_index: (a: number, b: number, c: number) => void;
   readonly group_serialize: (a: number, b: number) => void;
   readonly group_deserialize: (a: number, b: number, c: number) => void;
   readonly __wbg_nowelcomeerror_free: (a: number) => void;

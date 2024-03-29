@@ -1,5 +1,6 @@
 import React, {useState, useEffect} from 'react';
 import __wbg_init, {Group, Identity, Provider} from "../utils/crypto/openmls";
+import {deserialize} from "node:v8";
 
 export default function Mls() {
 
@@ -18,11 +19,13 @@ export default function Mls() {
             const carol = new Identity(carol_provider, "carol");
 
             const chess_club_alice = Group.create_new(alice_provider, alice, "chess club");
+
+            const alice_key_pkg = alice.key_package(alice_provider);
             const bob_key_pkg = bob.key_package(bob_provider);
             const carol_key_pkg = carol.key_package(carol_provider);
 
             console.log("alice: adding and building welcome for bob...");
-            const add_msgs_bob = chess_club_alice.propose_and_commit_add(
+            const add_msgs_bob = chess_club_alice.add_member(
                 alice_provider,
                 alice,
                 bob_key_pkg
@@ -42,7 +45,7 @@ export default function Mls() {
             );
 
             console.log("alice: adding and building welcome for carol...");
-            const add_msgs_carol = chess_club_alice.propose_and_commit_add(
+            const add_msgs_carol = chess_club_alice.add_member(
                 alice_provider,
                 alice,
                 carol_key_pkg
@@ -127,6 +130,99 @@ export default function Mls() {
             } else {
                 console.log("success: the keys match!")
             }
+
+            let carol_index = chess_club_bob.get_member_index(carol_key_pkg)
+
+            console.log("bob removing carol...");
+            const bob_remove_carol_msg = chess_club_bob.remove_member(
+                bob_provider,
+                bob,
+                carol_index
+            );
+            console.log("bob: committing...");
+            chess_club_bob.merge_pending_commit(bob_provider);
+
+            chess_club_alice.process_message(alice_provider, bob_remove_carol_msg.commit)
+
+            console.log("alice: exporting key...");
+            const alice_exported_key_new = chess_club_alice.export_key(
+                alice_provider,
+                "chess_key",
+                new Uint8Array(32).fill(0x30),
+                32
+            );
+            console.log(alice_exported_key_new);
+
+            console.log("bob:   exporting key...");
+            const bob_exported_key_new = chess_club_bob.export_key(
+                bob_provider,
+                "chess_key",
+                new Uint8Array(32).fill(0x30),
+                32
+            );
+            console.log(bob_exported_key_new);
+
+            console.log("carol:   exporting key...");
+            const carol_exported_key_new = chess_club_carol.export_key(
+                carol_provider,
+                "chess_key",
+                new Uint8Array(32).fill(0x30),
+                32
+            );
+            console.log(carol_exported_key_new);
+
+
+            if (!compare_bytes(bob_exported_key_new, alice_exported_key_new)) {
+                console.error("expected keys to match, but they dont!")
+            } else {
+                console.log("success: the keys match!")
+            }
+
+
+            if (compare_bytes(alice_exported_key_new, carol_exported_key_new)) {
+                console.error("expected keys not to match, but they do!")
+            } else {
+                console.log("success: the keys dont match!")
+            }
+
+
+            console.log("bob updating keys...");
+            const bob_update_keys_message = chess_club_bob.update_key_package(
+                bob_provider,
+                bob,
+            );
+            console.log("bob: committing...");
+            chess_club_bob.merge_pending_commit(bob_provider);
+
+            chess_club_alice.process_message(alice_provider, bob_update_keys_message.commit)
+
+            let serialized_chess_club_alice = chess_club_alice.serialize()
+            let deserialized_chess_club_alice = Group.deserialize(serialized_chess_club_alice)
+
+            console.log("alice: exporting key...");
+            const alice_exported_key_new2 = deserialized_chess_club_alice.export_key(
+                alice_provider,
+                "chess_key",
+                new Uint8Array(32).fill(0x30),
+                32
+            );
+            console.log(alice_exported_key_new2);
+
+            console.log("bob:   exporting key...");
+            const bob_exported_key_new2 = chess_club_bob.export_key(
+                bob_provider,
+                "chess_key",
+                new Uint8Array(32).fill(0x30),
+                32
+            );
+            console.log(bob_exported_key_new2);
+
+            if (!compare_bytes(bob_exported_key_new2, alice_exported_key_new2)) {
+                console.error("expected keys to match, but they dont!")
+            } else {
+                console.log("success: the keys match!")
+            }
+
 
             alice_provider.free()
             bob_provider.free()
