@@ -1,22 +1,51 @@
-import React from 'react';
-import {Route, Routes, BrowserRouter} from 'react-router-dom';
-import {Login, Mls, Register} from './Pages'
+import React, {ReactNode} from 'react';
+import {Route, Routes, BrowserRouter, Navigate} from 'react-router-dom';
+import {Home, Login, Mls, Register} from './Pages'
 import {Layout} from "./Components";
-// Import other components like Home and Login
-import * as mfkdf from './utils/crypto/mfkdf/mfkdf.min'
+import {useInitialRootStore, useStores} from "./models/helpers/useStores";
 
+interface RouteProps {
+    children: ReactNode;
+}
 
 export default function App() {
+    // load persisted state if possible
+    useInitialRootStore()
 
+    const {authStore} = useStores()
+
+    const GuestRoute: React.FC<RouteProps> = ({ children }) => {
+
+        if (authStore.isAuthenticated()) {
+            // Redirect to the home page if logged in
+            console.log("aaa")
+            return <Navigate to="/home" replace />;
+        }
+
+        return <>{children}</>; // Wrapped children in fragment for explicit return
+    };
+
+    const ProtectedRoute: React.FC<RouteProps> = ({ children }) => {
+        if (!authStore.isAuthenticated()) {
+            // Redirect to the login page if not logged in
+            return <Navigate to="/login" replace />;
+        }
+
+        return <>{children}</>; // Wrapped children in fragment for explicit return
+    };
 
 
     return (
         <BrowserRouter>
             <Routes>
                 <Route path="/" element={<Layout />}>
-                    <Route index path="register" element={<Register/>} />
-                    <Route path="login" element={<Login />} />
-                    <Route path="mls" element={<Mls />} />
+                    {/* Apply ProtectedRoute for authenticated routes */}
+                    <Route index path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+                    <Route path="/mls" element={<ProtectedRoute><Mls /></ProtectedRoute>} />
+
+                    {/* Apply GuestRoute for login and register */}
+                    <Route path="/login" element={<GuestRoute><Login /></GuestRoute>} />
+                    <Route path="/register" element={<GuestRoute><Register /></GuestRoute>} />
                 </Route>
             </Routes>
         </BrowserRouter>

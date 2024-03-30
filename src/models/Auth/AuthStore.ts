@@ -11,7 +11,11 @@ export const AuthStoreModel = types
         authToken: types.maybe(types.string)
     })
     .actions(withSetPropAction)
-    .views((self) => ({})) // eslint-disable-line @typescript-eslint/no-unused-vars
+    .views((self) => ({
+        isAuthenticated(): boolean{
+            return !!self.authToken
+        }
+    })) // eslint-disable-line @typescript-eslint/no-unused-vars
     .actions((self) => ({
         setAuthToken(token: string){
             self.authToken = token

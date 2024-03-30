@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
-import { Container, TextField, Button, Typography } from '@mui/material';
+import React, {useState} from 'react';
+import {Container, TextField, Button, Typography} from '@mui/material';
 import api, {LoginPayload} from "../services/api"; // Ensure you have a login method here
 import * as mfkdf from '../utils/crypto/mfkdf/mfkdf.min'
 import {useStores} from "../models/helpers/useStores";
 import {useApiService} from "../hooks";
+import {useNavigate} from "react-router-dom";
+
 export interface LoginState {
     email: string;
     password: string;
@@ -13,6 +15,9 @@ export interface LoginState {
 export default function Login() {
     const {authStore} = useStores()
     const apiService = useApiService()
+    const navigate = useNavigate();
+
+    console.log(authStore.authToken)
 
     const [state, setState] = useState<LoginState>({
         email: 'test@email.com',
@@ -21,8 +26,8 @@ export default function Login() {
     });
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, value } = e.target;
-        setState(prevState => ({ ...prevState, [name]: value }));
+        const {name, value} = e.target;
+        setState(prevState => ({...prevState, [name]: value}));
     };
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -49,10 +54,10 @@ export default function Login() {
             authStore.setAuthToken(loginResponse.token);
             api.setAuthToken(loginResponse.token); // Manually set the token for immediate effect
 
-            console.log(authStore.authToken);
             const meResponse = await apiService.getMe();
-            console.log(meResponse);
-            alert('Login successful');
+
+            navigate("/home")
+
         } catch (error) {
             console.error('Login failed:', error);
             alert('Login failed');

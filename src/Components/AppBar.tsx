@@ -3,11 +3,15 @@ import { Link, NavLink } from 'react-router-dom';
 import { AppBar, Box, Toolbar, IconButton, Typography, Menu, Container, Avatar, Button, Tooltip, MenuItem } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import AdbIcon from '@mui/icons-material/Adb';
-
-const pages = ['Login', 'Register', 'Mls'];
-const settings = ['Profile', 'Account', 'Dashboard', 'Logout'];
+import {useStores} from "../models/helpers/useStores";
 
 const ResponsiveAppBar = () => {
+
+    const {authStore} = useStores()
+
+    const pages = authStore.isAuthenticated() ? ['Home'] : ['Login', 'Register', 'Mls'];
+    const settings = ['Profile', 'Account', 'Dashboard', 'Logout'];
+
     const [anchorElNav, setAnchorElNav] = React.useState<null | HTMLElement>(null);
     const [anchorElUser, setAnchorElUser] = React.useState<null | HTMLElement>(null);
 

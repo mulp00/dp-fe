@@ -1,5 +1,6 @@
-import { createContext, useContext } from "react"
+import {createContext, useContext, useEffect, useState} from "react"
 import { RootStore, RootStoreModel } from "../RootStore"
+import {setupRootStore} from "./setupRootStore";
 
 /**
  * Create the initial (empty) global RootStore instance here.
@@ -40,3 +41,31 @@ export const RootStoreProvider = RootStoreContext.Provider
  * const { someStore, someOtherStore } = useStores()
  */
 export const useStores = () => useContext(RootStoreContext)
+
+export const useInitialRootStore = () => {
+    const rootStore = useStores()
+    const [rehydrated, setRehydrated] = useState(false)
+
+    // Kick off initial async loading actions, like loading fonts and rehydrating RootStore
+    useEffect(() => {
+        let _unsubscribe: undefined | (()=>void)
+        ;(async () => {
+            // set up the RootStore (returns the state restored from AsyncStorage)
+            const { unsubscribe } = await setupRootStore(rootStore)
+            _unsubscribe = unsubscribe
+
+            // let the app know we've finished rehydrating
+            setRehydrated(true)
+
+
+        })()
+
+        return () => {
+            // cleanup
+            if (_unsubscribe)
+                _unsubscribe()
+        }
+    }, [])
+
+    return { rootStore, rehydrated }
+}
