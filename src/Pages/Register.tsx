@@ -3,9 +3,8 @@ import {Container, TextField, Button, Typography} from '@mui/material';
 import api, {RegisterPayload} from "../services/api";
 import QRCode from 'react-qr-code'
 import * as mfkdf from '../utils/crypto/mfkdf/mfkdf.min'
-import {Buffer} from 'buffer'
-// @ts-ignore
-import * as jsotp from 'jsotp'
+import __wbg_init, {Identity, Provider} from "../utils/crypto/openmls";
+import {useStores} from "../models/helpers/useStores";
 
 export interface RegistrationState {
     email: string;
@@ -16,6 +15,7 @@ export interface RegistrationState {
 
 export default function Registration() {
     const [qr, setQr] = useState<string>()
+    const [isWasmInitialized, setWasmInitialized] = useState(false);
 
     const [state, setState] = useState<RegistrationState>({
         email: 'test@email.com',
@@ -24,6 +24,18 @@ export default function Registration() {
         policy: '',
     });
 
+    useEffect(() => {
+        const initializeWasm = async () => {
+            await __wbg_init();
+            setWasmInitialized(true);
+        };
+
+        if (!isWasmInitialized) {
+            initializeWasm();
+        }
+    }, [isWasmInitialized]);
+
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const {name, value} = e.target;
         setState(prevState => ({...prevState, [name]: value}));
@@ -31,6 +43,15 @@ export default function Registration() {
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+
+        if (!isWasmInitialized) {
+            console.error("WebAssembly is not initialized.");
+            return;
+        }
+
+        const provider = new Provider();
+        const identity = new Identity(provider, state.email)
+        const serialized_identity = identity.serialize()
 
         const setup = await mfkdf.setup.key([
             await mfkdf.setup.factors.password(state.password),
@@ -45,7 +66,8 @@ export default function Registration() {
             masterKey: setup.key.toString('hex'),
             mfkdfpolicy: {
                 policy: JSON.stringify(setup.policy)
-            }
+            },
+            identity: serialized_identity
         };
 
         try {

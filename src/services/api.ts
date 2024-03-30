@@ -1,13 +1,15 @@
 import axios, {AxiosInstance} from 'axios';
 import {RegistrationState} from "../Pages/Register";
+import {useStores} from "../models/helpers/useStores";
 
 export interface RegisterPayload {
     email: string;
     password: string;
     masterKey: string;
     mfkdfpolicy: {
-        policy: string
+        policy: string;
     };
+    identity: string;
 }
 export interface LoginPayload {
     email: string;
@@ -26,6 +28,10 @@ interface GetPolicyResponse {
     policy: string;
 }
 
+interface GetMeResponse {
+    identity: string;
+}
+
 class ApiService {
     private axiosInstance: AxiosInstance;
 
@@ -36,6 +42,10 @@ class ApiService {
         });
 
         this.initializeInterceptors();
+    }
+
+    public setAuthToken(token: string): void {
+        this.axiosInstance.defaults.headers.common['Authorization'] = `BEARER ${token}`;
     }
 
     private initializeInterceptors() {
@@ -83,6 +93,13 @@ class ApiService {
     public async getPolicy(payload: GetPolicyPayload): Promise<GetPolicyResponse> {
         const encodedEmail = encodeURIComponent(payload.email);
         return this.axiosInstance.get<GetPolicyResponse>(`/auth/user/${encodedEmail}/policy`, {
+            headers: {
+                "Content-type": "application/ld+json"
+            }
+        }).then(response => response.data);
+    }
+    public async getMe(): Promise<GetMeResponse> {
+        return this.axiosInstance.get(`/me`, {
             headers: {
                 "Content-type": "application/ld+json"
             }

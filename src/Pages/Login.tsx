@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { Container, TextField, Button, Typography } from '@mui/material';
 import api, {LoginPayload} from "../services/api"; // Ensure you have a login method here
 import * as mfkdf from '../utils/crypto/mfkdf/mfkdf.min'
-
+import {useStores} from "../models/helpers/useStores";
+import {useApiService} from "../hooks";
 export interface LoginState {
     email: string;
     password: string;
@@ -10,6 +11,9 @@ export interface LoginState {
 }
 
 export default function Login() {
+    const {authStore} = useStores()
+    const apiService = useApiService()
+
     const [state, setState] = useState<LoginState>({
         email: 'test@email.com',
         password: 'qwertyu',
@@ -38,10 +42,16 @@ export default function Login() {
             masterKeyHash: key,
         };
 
+        console.log(payload)
+
         try {
-            const response = await api.login(payload);
-            console.log(response)
-            // Handle login success, such as saving the JWT or redirecting the user
+            const loginResponse = await apiService.login(payload);
+            authStore.setAuthToken(loginResponse.token);
+            api.setAuthToken(loginResponse.token); // Manually set the token for immediate effect
+
+            console.log(authStore.authToken);
+            const meResponse = await apiService.getMe();
+            console.log(meResponse);
             alert('Login successful');
         } catch (error) {
             console.error('Login failed:', error);
