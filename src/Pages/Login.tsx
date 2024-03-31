@@ -1,11 +1,12 @@
 import React, {useState} from 'react';
-import {Button, Container, TextField, Typography} from '@mui/material';
+import {Box, Button, Container, TextField, Typography} from '@mui/material';
 import api, {LoginPayload} from "../services/api"; // Ensure you have a login method here
 import * as mfkdf from '../utils/crypto/mfkdf/mfkdf.min'
 import {useStores} from "../models/helpers/useStores";
 import {useApiService} from "../hooks";
 import {useNavigate} from "react-router-dom";
 import {observer} from "mobx-react";
+import {applySnapshot} from "mobx-state-tree";
 
 export interface LoginState {
     email: string;
@@ -52,8 +53,8 @@ export const Login = observer(function Login() {
             api.setAuthToken(loginResponse.token); // Manually set the token for immediate effect
 
             const meResponse = await apiService.getMe();
-            userStore.me.setSerializedIdentity(meResponse.serializedIdentity)
-
+            // userStore.me.setSerializedIdentity(meResponse.serializedIdentity)
+            applySnapshot(userStore.me, meResponse)
             navigate("/home")
 
         } catch (error) {
@@ -63,9 +64,10 @@ export const Login = observer(function Login() {
     };
 
     return (
-        <Container component="main" maxWidth="xs">
-            <Typography component="h1" variant="h5">Login</Typography>
-            <form onSubmit={handleSubmit}>
+        <Box display="flex" alignItems="center" justifyContent="center" minHeight="75vh"> {/* Adjusted part */}
+            <Container component="main" maxWidth="xs">
+                <Typography component="h1" variant="h5">Login</Typography>
+                <form onSubmit={handleSubmit}>
                 <TextField
                     variant="outlined"
                     margin="normal"
@@ -102,7 +104,8 @@ export const Login = observer(function Login() {
                 <Button type="submit" fullWidth variant="contained" color="primary">
                     Login
                 </Button>
-            </form>
-        </Container>
+                </form>
+            </Container>
+        </Box>
     );
-})
+});

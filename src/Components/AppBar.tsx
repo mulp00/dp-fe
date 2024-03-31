@@ -11,10 +11,10 @@ import {
     MenuItem,
     Toolbar,
     Tooltip,
-    Typography
+    Typography, useMediaQuery, useTheme
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
-import AdbIcon from '@mui/icons-material/Adb';
+import ShieldIcon from '@mui/icons-material/Shield';
 import {useStores} from "../models/helpers/useStores";
 import {observer} from "mobx-react";
 import {FC} from "react";
@@ -23,12 +23,16 @@ import {clear as storageClear} from "../utils/storage";
 
 const ResponsiveAppBar: FC = observer(function ResponsiveAppBar() {
 
-    const {authStore, clear} = useStores()
+    const {authStore, userStore, clear} = useStores()
     const isAuthenticated = authStore.isAuthenticated()
+
+    const theme = useTheme();
+
+    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
     const navigate = useNavigate();
 
-    const pages = isAuthenticated ? ['Home'] : ['Login', 'Register', 'Mls'];
+    const pages = isAuthenticated ? [] : ['Login', 'Register', 'Mls'];
     const settings = ['Logout'];
 
     const [anchorElNav, setAnchorElNav] = React.useState<null | HTMLElement>(null);
@@ -49,11 +53,12 @@ const ResponsiveAppBar: FC = observer(function ResponsiveAppBar() {
         setAnchorElUser(null);
     };
 
+    const conditionalPadding = isMobile ? 2 : 5; // Conditional padding based on screen size
+
     return (
-        <AppBar position="static">
-            <Container maxWidth="xl">
+        <AppBar position="static" sx={{ paddingLeft: conditionalPadding, paddingRight: conditionalPadding }}>
                 <Toolbar disableGutters>
-                    <AdbIcon sx={{display: {xs: 'none', md: 'flex'}, mr: 1}}/>
+                    <ShieldIcon sx={{display: {xs: 'none', md: 'flex'}, mr: 1}}/>
                     <Typography
                         variant="h6"
                         noWrap
@@ -69,7 +74,7 @@ const ResponsiveAppBar: FC = observer(function ResponsiveAppBar() {
                             textDecoration: 'none',
                         }}
                     >
-                        LOGO
+                        SHARY
                     </Typography>
 
                     <Box sx={{flexGrow: 1, display: {xs: 'flex', md: 'none'}}}>
@@ -112,7 +117,7 @@ const ResponsiveAppBar: FC = observer(function ResponsiveAppBar() {
                             ))}
                         </Menu>
                     </Box>
-                    <AdbIcon sx={{display: {xs: 'flex', md: 'none'}, mr: 1}}/>
+                    <ShieldIcon sx={{display: {xs: 'flex', md: 'none'}, mr: 1}}/>
                     <Typography
                         variant="h5"
                         noWrap
@@ -153,11 +158,11 @@ const ResponsiveAppBar: FC = observer(function ResponsiveAppBar() {
                     {
                         isAuthenticated &&
 
-                        <Box sx={{flexGrow: 0}}>
+                        <Box sx={{ flexGrow: 0, ml: 'auto' }}>
                             <Tooltip title="Open settings">
                                 <IconButton onClick={handleOpenUserMenu}
                                             sx={{p: 0}}>
-                                    <Avatar alt="User Avatar" src="/static/images/avatar/2.jpg"/>
+                                    <Avatar>{userStore.me.email.charAt(0).toUpperCase()}</Avatar>
                                 </IconButton>
                             </Tooltip>
                             <Menu
@@ -178,8 +183,8 @@ const ResponsiveAppBar: FC = observer(function ResponsiveAppBar() {
                                 {settings.map((setting) => (
                                     <MenuItem key={setting} onClick={() => {
                                         if (setting === 'Logout') {
-                                            clear(); // Assuming this is your authStore's method to clear the session
-                                            storageClear(); // Clearing whatever storage mechanism you're using
+                                            clear(); //  authStore's method to clear the session
+                                            storageClear(); // Clearing storage
                                             navigate('/login'); // Redirecting to login page
                                         }
                                         handleCloseUserMenu()
@@ -190,7 +195,6 @@ const ResponsiveAppBar: FC = observer(function ResponsiveAppBar() {
                             </Menu>
                         </Box>}
                 </Toolbar>
-            </Container>
         </AppBar>
     );
 })

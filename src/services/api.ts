@@ -11,6 +11,7 @@ export interface RegisterPayload {
     };
     serializedIdentity: string;
 }
+
 export interface LoginPayload {
     email: string;
     masterKeyHash: string;
@@ -30,6 +31,22 @@ interface GetPolicyResponse {
 
 interface GetMeResponse {
     serializedIdentity: string;
+    email: string;
+}
+
+interface PostNewGroupPayload {
+    serializedGroup: string;
+}
+
+interface PostNewGroupResponse {
+    serializedGroup: "string",
+    groupEntity: {
+        users: [
+            {
+                email: string,
+            }
+        ]
+    }
 }
 
 class ApiService {
@@ -98,8 +115,17 @@ class ApiService {
             }
         }).then(response => response.data);
     }
+
     public async getMe(): Promise<GetMeResponse> {
         return this.axiosInstance.get(`/me`, {
+            headers: {
+                "Content-type": "application/ld+json"
+            }
+        }).then(response => response.data);
+    }
+
+    public async createGroup(payload: PostNewGroupPayload): Promise<PostNewGroupResponse> {
+        return this.axiosInstance.post<PostNewGroupResponse>('/serializedGroup', payload, {
             headers: {
                 "Content-type": "application/ld+json"
             }
