@@ -9,7 +9,7 @@ export interface RegisterPayload {
     mfkdfpolicy: {
         policy: string;
     };
-    identity: string;
+    serializedIdentity: string;
 }
 export interface LoginPayload {
     email: string;
@@ -29,7 +29,7 @@ interface GetPolicyResponse {
 }
 
 interface GetMeResponse {
-    identity: string;
+    serializedIdentity: string;
 }
 
 class ApiService {

@@ -1,4 +1,4 @@
-export {default as Register} from './Register'
-export {default as Login} from './Login'
-export {default as Mls} from './Mls'
-export {default as Home} from './Home'
+export * from './Register'
+export * from './Login'
+export * from './Mls'
+export * from './Home'

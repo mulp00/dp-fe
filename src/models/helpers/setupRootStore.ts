@@ -30,9 +30,8 @@ export async function setupRootStore(rootStore: RootStore) {
         // load the last known state from AsyncStorage
         restoredState = (await storage.load(ROOT_STATE_STORAGE_KEY)) as RootStoreSnapshot | null
         applySnapshot(rootStore, restoredState)
-    } catch (e) {
-        // if there's any problems loading, then inform the dev what happened
-        console.error(e)
+    } catch  {
+        // if there is nothing to load pass
     }
 
     // stop tracking state changes if we've already setup

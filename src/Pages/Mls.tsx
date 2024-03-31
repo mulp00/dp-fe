@@ -1,8 +1,9 @@
 import React, {useState, useEffect} from 'react';
 import __wbg_init, {Group, Identity, Provider} from "../utils/crypto/openmls";
 import {deserialize} from "node:v8";
+import {observer} from "mobx-react";
 
-export default function Mls() {
+export const Mls = observer(function Mls() {
 
     const [isWasmInitialized, setWasmInitialized] = useState(false);
 
@@ -255,7 +256,7 @@ export default function Mls() {
     }, [isWasmInitialized])
     return <></>
 
-}
+})
 
 function compare_bytes(left: Uint8Array, right: Uint8Array) {
     if (left.length !== right.length) {

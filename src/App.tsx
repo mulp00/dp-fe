@@ -3,12 +3,14 @@ import {Route, Routes, BrowserRouter, Navigate} from 'react-router-dom';
 import {Home, Login, Mls, Register} from './Pages'
 import {Layout} from "./Components";
 import {useInitialRootStore, useStores} from "./models/helpers/useStores";
+import {observer} from "mobx-react";
 
 interface RouteProps {
     children: ReactNode;
 }
 
-export default function App() {
+const App = observer(function App()
+{
     // load persisted state if possible
     useInitialRootStore()
 
@@ -18,7 +20,6 @@ export default function App() {
 
         if (authStore.isAuthenticated()) {
             // Redirect to the home page if logged in
-            console.log("aaa")
             return <Navigate to="/home" replace />;
         }
 
@@ -50,4 +51,6 @@ export default function App() {
             </Routes>
         </BrowserRouter>
     );
-}
+})
+
+export default App;

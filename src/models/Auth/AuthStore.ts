@@ -19,6 +19,9 @@ export const AuthStoreModel = types
     .actions((self) => ({
         setAuthToken(token: string){
             self.authToken = token
+        },
+        clear(){
+            self.authToken = ""
         }
 
     })) // eslint-disable-line @typescript-eslint/no-unused-vars

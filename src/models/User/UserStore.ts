@@ -1,6 +1,6 @@
-import { Instance, SnapshotIn, SnapshotOut, types } from "mobx-state-tree"
-import { withSetPropAction } from "../helpers/withSetPropAction"
-import {UserModel} from "./UserModel";
+import {Instance, SnapshotIn, SnapshotOut, types} from "mobx-state-tree"
+import {withSetPropAction} from "../helpers/withSetPropAction"
+import {createUserDefaultModel} from "./UserModel";
 
 /**
  * Model description here for TypeScript hints.
@@ -10,13 +10,14 @@ import {UserModel} from "./UserModel";
 export const UserStoreModel = types
     .model("UserStore")
     .props({
-        me: types.maybe(UserModel),
-        users: types.array(UserModel),
+        me: createUserDefaultModel(),
     })
     .actions(withSetPropAction)
     .views((self) => ({})) // eslint-disable-line @typescript-eslint/no-unused-vars
     .actions((self) => ({
-
+        clear(){
+            self.me?.clear()
+        }
     })) // eslint-disable-line @typescript-eslint/no-unused-vars
 
 export interface UserStore extends Instance<typeof UserStoreModel> {
