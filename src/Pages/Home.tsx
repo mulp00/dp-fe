@@ -4,6 +4,7 @@ import {useStores} from "../models/helpers/useStores";
 import {useApiService} from "../hooks";
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import {
+    Avatar,
     Box,
     Card,
     CardContent,
@@ -13,7 +14,7 @@ import {
     Grid,
     IconButton,
     List,
-    ListItem, Tooltip,
+    ListItem, SpeedDial, SpeedDialAction, SpeedDialIcon, TextField, Tooltip,
     Typography,
     useMediaQuery,
     useTheme
@@ -23,6 +24,8 @@ import MenuIcon from "@mui/icons-material/Menu";
 import CreditCardIcon from '@mui/icons-material/CreditCard';
 import KeyIcon from '@mui/icons-material/Key';
 import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
+import {useDrawer} from "../context/DrawerContext";
+import LogoutIcon from "@mui/icons-material/Logout";
 
 export const Home = observer(function Home() {
     const {userStore, groupStore} = useStores()
@@ -30,8 +33,7 @@ export const Home = observer(function Home() {
     const apiService = useApiService()
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-
-    const [drawerOpen, setDrawerOpen] = useState(false);
+    const {isDrawerOpen, toggleDrawer} = useDrawer();
 
     // useEffect(() => {
     //     const initializeWasm = async () => {
@@ -68,7 +70,12 @@ export const Home = observer(function Home() {
         {name: 'VelkáFirma a.s.', members: 22},
     ];
 
-    // Placeholder columns for DataGrid
+    const actions = [
+        { icon: <KeyIcon />, name: 'Přihlašovací údaje' , onClick: ()=>console.log('prihl')},
+        { icon: <CreditCardIcon />, name: 'Karta', onClick: ()=>console.log('karta')},
+        { icon: <InsertDriveFileIcon />, name: 'Soubor', onClick: ()=>console.log('soubor')},
+    ];
+
     const columns: GridColDef[] = [
         {
             field: 'type',
@@ -83,16 +90,16 @@ export const Home = observer(function Home() {
                         icon = <Tooltip title={"Karta"}><CreditCardIcon/></Tooltip>;
                         break;
                     case 'login':
-                        icon = <Tooltip title={"Přihlašovací údaje"}><KeyIcon /></Tooltip>;
+                        icon = <Tooltip title={"Přihlašovací údaje"}><KeyIcon/></Tooltip>;
                         break;
                     case 'file':
                         icon = <Tooltip title={"Soubor"}><InsertDriveFileIcon/></Tooltip>;
                         break;
                     default:
-                        icon = <div />;
+                        icon = <div/>;
                 }
                 return (
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: "100%" }}>
+                    <Box sx={{display: 'flex', alignItems: 'center', justifyContent: 'center', height: "100%"}}>
                         {icon}
                     </Box>
                 );
@@ -101,7 +108,7 @@ export const Home = observer(function Home() {
         {field: 'name', headerName: 'Název', width: 130, flex: 1},
         {
             field: 'details',
-            headerName: 'Details',
+            headerName: 'Detail',
             sortable: false,
             renderCell: (params: GridRenderCellParams) => (
                 <IconButton
@@ -120,29 +127,33 @@ export const Home = observer(function Home() {
     ];
 
     const listContent = (
-        <CardContent>
-            <Typography gutterBottom variant="h6" component="div">
-                Skupiny
-            </Typography>
-            <List>
-                {companies.map((company, index) => (
-                    <React.Fragment key={index}>
-                        <ListItem>
-                            <Container>
-                                <Typography variant="body2">{company.name}</Typography>
-                                <Typography variant="body2" color="text.secondary">
-                                    {company.members} členů
-                                </Typography>
-                            </Container>
-                            <IconButton >
-                                <MoreVertIcon/>
-                            </IconButton>
-                        </ListItem>
-                        {index < companies.length - 1 && <Divider/>}
-                    </React.Fragment>
-                ))}
-            </List>
-        </CardContent>
+        <>
+            <CardContent sx={{backgroundColor: "#dddddd", height:40}}>
+                <Container>
+                    <TextField id="outlined-search" label="Hledání" type="search" size={"small"}/>
+                </Container>
+            </CardContent>
+            <CardContent>
+                <List>
+                    {companies.map((company, index) => (
+                        <React.Fragment key={index}>
+                            <ListItem>
+                                <Container>
+                                    <Typography variant="body2">{company.name}</Typography>
+                                    <Typography variant="body2" color="text.secondary">
+                                        {company.members} členů
+                                    </Typography>
+                                </Container>
+                                <IconButton>
+                                    <MoreVertIcon/>
+                                </IconButton>
+                            </ListItem>
+                            {index < companies.length - 1 && <Divider/>}
+                        </React.Fragment>
+                    ))}
+                </List>
+            </CardContent>
+        </>
     );
 
     const conditionalPadding = isMobile ? 2 : 5; // Conditional padding based on screen size
@@ -151,7 +162,6 @@ export const Home = observer(function Home() {
         <Box
             sx={{
                 padding: conditionalPadding,
-                minHeight: `calc(100vh - ${theme.spacing(8)})`,
                 display: 'flex',
                 flexDirection: 'column',
             }}
@@ -159,20 +169,10 @@ export const Home = observer(function Home() {
             <Grid container spacing={2}>
                 {isMobile ? (
                     <>
-                        {/* Burger button to open drawer on mobile */}
-                        <IconButton
-                            edge="start"
-                            color="inherit"
-                            aria-label="menu"
-                            sx={{mb: 2, display: {sm: 'none'}}}
-                            onClick={() => setDrawerOpen(true)}
-                        >
-                            <MenuIcon/>
-                        </IconButton>
                         <Drawer
                             variant="temporary"
-                            open={drawerOpen}
-                            onClose={() => setDrawerOpen(false)}
+                            open={isDrawerOpen}
+                            onClose={() => toggleDrawer()}
                             ModalProps={{
                                 keepMounted: true, // Better open performance on mobile
                             }}
@@ -193,8 +193,26 @@ export const Home = observer(function Home() {
 
                 <Grid item xs={isMobile ? 12 : 9}>
                     <Card sx={{height: '100%', width: '100%'}} elevation={3}>
+                        <CardContent sx={{backgroundColor: "#dddddd", height:40}}>
+                            <SpeedDial
+                                direction={'right'}
+                                ariaLabel="profile"
+                                icon={<SpeedDialIcon/>}
+                                FabProps={{size:"small", style: { boxShadow: "none"} }}
+                                sx={{height:40}}
+                            >
+                                {actions.map((action) => (
+                                    <SpeedDialAction
+                                        key={action.name}
+                                        icon={action.icon}
+                                        tooltipTitle={action.name}
+                                        onClick={action.onClick}
+                                    />
+                                ))}
+                            </SpeedDial>
+                        </CardContent>
                         <DataGrid
-                            sx={{minHeight: '85vh', borderWidth: 0}}
+                            sx={{borderWidth: 0}}
                             rows={rows}
                             columns={columns}
                             autoHeight

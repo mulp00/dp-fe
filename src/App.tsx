@@ -4,6 +4,7 @@ import {Home, Login, Mls, Register} from './Pages'
 import {Layout} from "./Components";
 import {useInitialRootStore, useStores} from "./models/helpers/useStores";
 import {observer} from "mobx-react";
+import {DrawerProvider} from "./context/DrawerContext";
 
 interface RouteProps {
     children: ReactNode;
@@ -38,17 +39,19 @@ const App = observer(function App()
 
     return (
         <BrowserRouter>
-            <Routes>
-                <Route path="/" element={<Layout />}>
-                    {/* Apply ProtectedRoute for authenticated routes */}
-                    <Route index path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
-                    <Route path="/mls" element={<ProtectedRoute><Mls /></ProtectedRoute>} />
+            <DrawerProvider>
+                <Routes>
+                    <Route path="/" element={<Layout/>}>
+                        {/* Apply ProtectedRoute for authenticated routes */}
+                        <Route index path="/home" element={<ProtectedRoute><Home/></ProtectedRoute>}/>
+                        <Route path="/mls" element={<ProtectedRoute><Mls/></ProtectedRoute>}/>
 
-                    {/* Apply GuestRoute for login and register */}
-                    <Route path="/login" element={<GuestRoute><Login /></GuestRoute>} />
-                    <Route path="/register" element={<GuestRoute><Register /></GuestRoute>} />
-                </Route>
-            </Routes>
+                        {/* Apply GuestRoute for login and register */}
+                        <Route path="/login" element={<GuestRoute><Login/></GuestRoute>}/>
+                        <Route path="/register" element={<GuestRoute><Register/></GuestRoute>}/>
+                    </Route>
+                </Routes>
+            </DrawerProvider>
         </BrowserRouter>
     );
 })
