@@ -35,19 +35,28 @@ interface GetMeResponse {
 }
 
 interface PostNewGroupPayload {
+    name: string;
     serializedGroup: string;
 }
 
 interface PostNewGroupResponse {
-    serializedGroup: "string",
-    groupEntity: {
-        users: [
-            {
-                email: string,
-            }
-        ]
-    }
+    name: string;
+    serializedGroup: string;
+    users: [
+        { email: string; }
+    ];
 }
+
+
+type GetGroupCollection = [
+    {
+        name: string;
+        serializedGroup: string;
+        users: [
+            { email: string; }
+        ];
+    }
+];
 
 class ApiService {
     private axiosInstance: AxiosInstance;
@@ -64,6 +73,11 @@ class ApiService {
     public setAuthToken(token: string): void {
         this.axiosInstance.defaults.headers.common['Authorization'] = `BEARER ${token}`;
     }
+
+    public removeAuthToken(): void {
+        delete this.axiosInstance.defaults.headers.common['Authorization'];
+    }
+
 
     private initializeInterceptors() {
         this.axiosInstance.interceptors.request.use(
@@ -131,6 +145,15 @@ class ApiService {
             }
         }).then(response => response.data);
     }
+
+    public async getGroupCollection(): Promise<GetGroupCollection> {
+        return this.axiosInstance.get(`/serializedGroupCollection`, {
+            headers: {
+                "Content-type": "application/ld+json"
+            }
+        }).then(response => response.data);
+    }
+
 }
 
 const apiService = new ApiService();

@@ -21,6 +21,7 @@ import {FC} from "react";
 import {clear as storageClear} from "../utils/storage";
 import {useDrawer} from "../context/DrawerContext";
 import LogoutIcon from '@mui/icons-material/Logout';
+import apiService from "../services/api";
 
 
 const ResponsiveAppBar: FC = observer(function ResponsiveAppBar() {
@@ -193,6 +194,7 @@ const ResponsiveAppBar: FC = observer(function ResponsiveAppBar() {
                                     if (setting === 'Logout') {
                                         clear(); //  authStore's method to clear the session
                                         storageClear(); // Clearing storage
+                                        apiService.removeAuthToken() // remove auth header
                                         navigate('/login'); // Redirecting to login page
                                     }
                                     handleCloseUserMenu()

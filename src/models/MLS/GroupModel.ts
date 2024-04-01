@@ -5,6 +5,7 @@ import {MemberModel} from "../User/MemberModel";
 export const GroupModel = types
     .model("GroupModel")
     .props({
+        name: types.string,
         serializedGroup: types.string,
         users: types.array(MemberModel)
     })
@@ -30,4 +31,4 @@ export interface GroupSnapshotOut extends SnapshotOut<typeof GroupModel> {
 export interface GroupSnapshotIn extends SnapshotIn<typeof GroupModel> {
 }
 
-export const createGroupDefaultModel = () => types.optional(GroupModel, {serializedGroup: "",})
+export const createGroupDefaultModel = () => types.optional(GroupModel, {name: "", serializedGroup: "",})
