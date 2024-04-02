@@ -37,7 +37,7 @@ const ResponsiveAppBar: FC = observer(function ResponsiveAppBar() {
 
     const navigate = useNavigate();
 
-    const pages = isAuthenticated ? [] : ['Login', 'Register', 'Mls'];
+    const pages = isAuthenticated ? [] : ['Login', 'Register'];
     const settings = ['Logout'];
 
     const [anchorElNav, setAnchorElNav] = React.useState<null | HTMLElement>(null);

@@ -29,10 +29,12 @@ import KeyIcon from '@mui/icons-material/Key';
 import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
 import GroupAddIcon from '@mui/icons-material/GroupAdd';
 import {useDrawer} from "../context/DrawerContext";
-import __wbg_init, {Group, Identity, Provider} from "../utils/crypto/openmls";
+import __wbg_init, {Group as MlsGroup, Identity, KeyPackage, Provider} from "../utils/crypto/openmls";
 import {applySnapshot, getSnapshot} from "mobx-state-tree";
-import CreateGroupModal from "../Components/CreateGroupModal";
 import {action} from "mobx";
+import {CreateGroupModal, EditGroupModal} from "../Components";
+import {createGroupDefaultModel, Group, GroupSnapshotIn} from "../models/MLS/GroupModel";
+import {MemberSnapshotIn} from "../models/User/MemberModel";
 
 export const Home = observer(function Home() {
     const {userStore, groupStore} = useStores()
@@ -41,7 +43,16 @@ export const Home = observer(function Home() {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
     const {isDrawerOpen, toggleDrawer} = useDrawer();
+
     const [isCreateGroupModalOpen, setIsCreateGroupModalOpen] = useState<boolean>(false)
+    const [isEditGroupModalOpen, setIsEditGroupModalOpen] = useState<boolean>(false)
+
+    const [editedGroup, setEditedGroup] = useState<GroupSnapshotIn>({
+        id: "",
+        creator: {id: "", email: "", keyPackage: ""},
+        name: '',
+        serializedGroup: '',
+    })
 
     useEffect(() => {
 
@@ -59,15 +70,20 @@ export const Home = observer(function Home() {
             const provider = new Provider();
             const identity = Identity.deserialize(userStore.me.serializedIdentity, provider);
 
-            const group = Group.create_new(provider, identity, name);
+            const group = MlsGroup.create_new(provider, identity, name);
             const serializedGroup = group.serialize();
+            const serializedRatchetTree = group.export_ratchet_tree().serialize()
 
-            const createGroupResponse = await apiService.createGroup({ name, serializedGroup });
-            console.log(createGroupResponse);
+            const createGroupResponse = await apiService.createGroup(
+                {
+                    name: name,
+                    serializedGroup: serializedGroup,
+                    ratchetTree: serializedRatchetTree
+                }
+            );
 
             action("updateGroupStore", () => {
                 groupStore.createNew(createGroupResponse);
-                console.log(getSnapshot(groupStore.groups));
             })();
 
             provider.free();
@@ -80,6 +96,45 @@ export const Home = observer(function Home() {
             throw new Error("Failed to create group.");
         }
     };
+
+    const addUser = async (member: MemberSnapshotIn, group: GroupSnapshotIn) => {
+
+
+        apiService.createWelcomeMessage({welcomeMessage: "ahoj", memberId: member.id, groupId: group.id})
+
+
+        /*const provider = new Provider();
+        const identity = Identity.deserialize(userStore.me.serializedIdentity, provider);
+
+        const deserializedGroup = MlsGroup.deserialize(group.serializedGroup);
+
+        const deserializedKeyPackage = KeyPackage.deserialize(member.keyPackage)
+
+        const add_msgs = deserializedGroup.add_member(
+            provider,
+            identity,
+            deserializedKeyPackage
+        );
+
+
+
+        deserializedGroup.merge_pending_commit(provider);
+
+        //TODO update ratchet tree
+        //TODO post messages
+
+        action("updateGroupStore", () => {
+            groupStore.createNew(createGroupResponse);
+        })();
+
+        provider.free();
+        identity.free();
+        deserializedGroup.free();
+        deserializedKeyPackage.free()
+
+        console.log(member.email)*/
+        return true
+    }
 
     useEffect(() => {
         const initializeWasm = async () => {
@@ -95,10 +150,8 @@ export const Home = observer(function Home() {
         return {name: group.name, members: group.users.length}
     })
 
-    // Placeholder rows for DataGrid
     const rows = [
         {id: 1, type: 'card', name: 'Firemní ČSOB'},
-        // ...more rows
     ];
 
     const actions = [
@@ -171,16 +224,19 @@ export const Home = observer(function Home() {
             </CardContent>
             <CardContent>
                 <List>
-                    {groups.map((company, index) => (
+                    {groupStore.groups.map((group, index) => (
                         <React.Fragment key={index}>
                             <ListItem>
                                 <Container>
-                                    <Typography variant="body2">{company.name}</Typography>
+                                    <Typography variant="body2">{group.name}</Typography>
                                     <Typography variant="body2" color="text.secondary">
-                                        {company.members} členů
+                                        {group.users.length} členů
                                     </Typography>
                                 </Container>
-                                <IconButton>
+                                <IconButton onClick={() => {
+                                    setEditedGroup(group)
+                                    setIsEditGroupModalOpen(true)
+                                }}>
                                     <MoreVertIcon/>
                                 </IconButton>
                             </ListItem>
@@ -198,11 +254,16 @@ export const Home = observer(function Home() {
 
         <>
             <CreateGroupModal
-                handleClose={() => {
-                    setIsCreateGroupModalOpen(false)
-                }}
                 isOpen={isCreateGroupModalOpen}
+                handleClose={() => setIsCreateGroupModalOpen(false)}
                 handleSubmit={createGroup}
+            />
+            <EditGroupModal
+                isOpen={isEditGroupModalOpen}
+                handleClose={() => setIsEditGroupModalOpen(false)}
+                group={editedGroup}
+                me={userStore.me}
+                handleAddUser={addUser}
             />
             <Box
                 sx={{

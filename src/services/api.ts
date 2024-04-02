@@ -1,6 +1,10 @@
 import axios, {AxiosInstance} from 'axios';
-import {RegistrationState} from "../Pages/Register";
-import {useStores} from "../models/helpers/useStores";
+
+export interface Member {
+    id: string;
+    email: string;
+    keyPackage: string;
+}
 
 export interface RegisterPayload {
     email: string;
@@ -10,6 +14,7 @@ export interface RegisterPayload {
         policy: string;
     };
     serializedIdentity: string;
+    keyPackage: string;
 }
 
 export interface LoginPayload {
@@ -25,38 +30,58 @@ export interface GetPolicyPayload {
     email: string;
 }
 
-interface GetPolicyResponse {
+export interface GetPolicyResponse {
     policy: string;
 }
 
-interface GetMeResponse {
+export interface GetMeResponse {
     serializedIdentity: string;
     email: string;
+    keyPackage: string;
 }
 
-interface PostNewGroupPayload {
+export interface PostNewGroupPayload {
     name: string;
     serializedGroup: string;
+    ratchetTree: string;
 }
 
-interface PostNewGroupResponse {
+export interface PostNewGroupResponse {
+    id: string;
     name: string;
+    creator: Member;
     serializedGroup: string;
     users: [
-        { email: string; }
+        Member
     ];
 }
 
+export interface GetUsersByEmailPayload {
+    email: string;
+}
 
-type GetGroupCollection = [
+export type GetUsersByEmailResponse = [
+    Member
+]
+
+
+export type GetGroupCollection = [
     {
+        id: string;
         name: string;
+        creator: Member;
         serializedGroup: string;
         users: [
-            { email: string; }
+            Member
         ];
     }
 ];
+
+interface PostWelcomeMessage {
+    groupId: string;
+    memberId: string;
+    welcomeMessage: string;
+}
 
 class ApiService {
     private axiosInstance: AxiosInstance;
@@ -153,6 +178,23 @@ class ApiService {
             }
         }).then(response => response.data);
     }
+
+    public async getUsersByEmail(payload: GetUsersByEmailPayload): Promise<GetUsersByEmailResponse> {
+        const encodedEmail = encodeURIComponent(payload.email);
+        return this.axiosInstance.get<GetUsersByEmailResponse>(`/getByEmail/${encodedEmail}`, {
+            headers: {
+                "Content-type": "application/ld+json"
+            }
+        }).then(response => response.data);
+    }
+
+    public async createWelcomeMessage(payload: PostWelcomeMessage): Promise<string> {
+        return this.axiosInstance.post<string>('/welcomeMessage', payload, {
+            headers: {
+                "Content-type": "application/ld+json"
+            }
+        }).then(response => response.data);
+    } // TODO pridal jsem endpoint na welcomemessage, hazi to ale 500 kdyz by se snazil o ten uniqueconstraint tak to chce pridat do controlleru, pak nejak handlovat to pridavani useru pojejich invitovani a hlavne pridani message
 
 }
 

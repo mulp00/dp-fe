@@ -148,6 +148,15 @@ export class Identity {
 */
 export class KeyPackage {
   free(): void;
+/**
+* @returns {string}
+*/
+  serialize(): string;
+/**
+* @param {string} serialized
+* @returns {KeyPackage}
+*/
+  static deserialize(serialized: string): KeyPackage;
 }
 /**
 */
@@ -171,6 +180,15 @@ export class Provider {
 */
 export class RatchetTree {
   free(): void;
+/**
+* @returns {string}
+*/
+  serialize(): string;
+/**
+* @param {string} serialized
+* @returns {RatchetTree}
+*/
+  static deserialize(serialized: string): RatchetTree;
 }
 /**
 */
@@ -255,7 +273,11 @@ export interface InitOutput {
   readonly group_deserialize: (a: number, b: number, c: number) => void;
   readonly __wbg_nowelcomeerror_free: (a: number) => void;
   readonly __wbg_keypackage_free: (a: number) => void;
+  readonly keypackage_serialize: (a: number, b: number) => void;
+  readonly keypackage_deserialize: (a: number, b: number, c: number) => void;
   readonly __wbg_ratchettree_free: (a: number) => void;
+  readonly ratchettree_serialize: (a: number, b: number) => void;
+  readonly ratchettree_deserialize: (a: number, b: number, c: number) => void;
   readonly __wbg_wasmbindgentestcontext_free: (a: number) => void;
   readonly wasmbindgentestcontext_new: () => number;
   readonly wasmbindgentestcontext_args: (a: number, b: number, c: number) => void;

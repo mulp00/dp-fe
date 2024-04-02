@@ -8,7 +8,7 @@ export type CreateGroupModalProps = {
     handleSubmit: (name: string) => Promise<string>;
 };
 
-const CreateGroupModal = observer(function CreateGroupModal(props: CreateGroupModalProps) {
+export const CreateGroupModal = observer(function CreateGroupModal(props: CreateGroupModalProps) {
     const [state, setState] = useState<"ready" | "loading" | "success" | "error">("ready");
     const [groupName, setGroupName] = useState("");
     const [message, setMessage] = useState("");
@@ -96,5 +96,3 @@ const CreateGroupModal = observer(function CreateGroupModal(props: CreateGroupMo
         </Modal>
     );
 });
-
-export default CreateGroupModal;

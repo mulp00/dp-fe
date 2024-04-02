@@ -20,7 +20,7 @@ export const Register = observer(function Register() {
 
         const [state, setState] = useState<RegistrationState>({
             email: 'test@email.com',
-            password: 'qwertyu',
+            password: 'SomePassword784512omgVerySecure',
             masterKey: '',
             policy: '',
         });
@@ -52,6 +52,7 @@ export const Register = observer(function Register() {
 
             const provider = new Provider();
             const identity = new Identity(provider, state.email)
+            const keyPackage = identity.key_package(provider).serialize()
             const serialized_identity = identity.serialize()
 
             const setup = await mfkdf.setup.key([
@@ -68,7 +69,8 @@ export const Register = observer(function Register() {
                 mfkdfpolicy: {
                     policy: JSON.stringify(setup.policy)
                 },
-                serializedIdentity: serialized_identity
+                serializedIdentity: serialized_identity,
+                keyPackage: keyPackage
             };
 
             try {

@@ -5,7 +5,8 @@ export const UserModel = types
     .model("UserModel")
     .props({
         email: types.string,
-        serializedIdentity: types.string
+        serializedIdentity: types.string,
+        keyPackage:types.string,
     })
     .actions(withSetPropAction)
     .views((self) => ({})) // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -28,4 +29,4 @@ export interface UserSnapshotOut extends SnapshotOut<typeof UserModel> {
 export interface UserSnapshotIn extends SnapshotIn<typeof UserModel> {
 }
 
-export const createUserDefaultModel = () => types.optional(UserModel, {email: "", serializedIdentity: ""})
+export const createUserDefaultModel = () => types.optional(UserModel, {email: "", serializedIdentity: "", keyPackage: ""})

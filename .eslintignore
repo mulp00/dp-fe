@@ -1,2 +1,3 @@
 #mfkdf
-src/utils/crypto/mfkdf/mfkdf.min.js
+src/utils/crypto/mfkdf/*
+src/utils/crypto/openmls/*
