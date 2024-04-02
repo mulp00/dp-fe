@@ -6,6 +6,17 @@ export interface Member {
     keyPackage: string;
 }
 
+export interface GroupResponse {
+    groupId: string;
+    serializedUserGroupId: string;
+    name: string;
+    creator: Member;
+    serializedGroup: string;
+    users: [
+        Member
+    ];
+}
+
 export interface RegisterPayload {
     email: string;
     password: string;
@@ -46,16 +57,6 @@ export interface PostNewGroupPayload {
     ratchetTree: string;
 }
 
-export interface PostNewGroupResponse {
-    id: string;
-    name: string;
-    creator: Member;
-    serializedGroup: string;
-    users: [
-        Member
-    ];
-}
-
 export interface GetUsersByEmailPayload {
     email: string;
 }
@@ -67,7 +68,8 @@ export type GetUsersByEmailResponse = [
 
 export type GetGroupCollection = [
     {
-        id: string;
+        groupId: string;
+        serializedUserGroupId: string;
         name: string;
         creator: Member;
         serializedGroup: string;
@@ -81,6 +83,16 @@ interface PostWelcomeMessage {
     groupId: string;
     memberId: string;
     welcomeMessage: string;
+    commitMessage: string;
+}
+
+interface PatchRatchetTree{
+    groupId: string;
+    ratchetTree: string;
+}
+interface PatchSerializedUserGroup{
+    serializedUserGroupId: string;
+    serializedUserGroup: string;
 }
 
 class ApiService {
@@ -163,8 +175,8 @@ class ApiService {
         }).then(response => response.data);
     }
 
-    public async createGroup(payload: PostNewGroupPayload): Promise<PostNewGroupResponse> {
-        return this.axiosInstance.post<PostNewGroupResponse>('/serializedGroup', payload, {
+    public async createGroup(payload: PostNewGroupPayload): Promise<GroupResponse> {
+        return this.axiosInstance.post<GroupResponse>('/newGroup', payload, {
             headers: {
                 "Content-type": "application/ld+json"
             }
@@ -194,8 +206,22 @@ class ApiService {
                 "Content-type": "application/ld+json"
             }
         }).then(response => response.data);
-    } // TODO pridal jsem endpoint na welcomemessage, hazi to ale 500 kdyz by se snazil o ten uniqueconstraint tak to chce pridat do controlleru, pak nejak handlovat to pridavani useru pojejich invitovani a hlavne pridani message
+    }
 
+    public async updateRatchetTree(payload: PatchRatchetTree): Promise<string> {
+        return this.axiosInstance.patch<string>('/updateRatchetTree', payload, {
+            headers: {
+                "Content-type": "application/merge-patch+json"
+            }
+        }).then(response => response.data);
+    }
+    public async updateSerializedUserGroup(payload: PatchSerializedUserGroup): Promise<GroupResponse> {
+        return this.axiosInstance.patch<GroupResponse>('/updateSerializedUserGroup', payload, {
+            headers: {
+                "Content-type": "application/merge-patch+json"
+            }
+        }).then(response => response.data);
+    }
 }
 
 const apiService = new ApiService();

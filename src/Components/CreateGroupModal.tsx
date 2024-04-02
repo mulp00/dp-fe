@@ -33,10 +33,10 @@ export const CreateGroupModal = observer(function CreateGroupModal(props: Create
         if (state !== "loading") { // Prevent closing if loading
             props.handleClose();
             setTimeout(() => {
-                setState("ready"); // Reset state for next opening
-                setMessage(""); // Clear message
-                setGroupName(""); // Reset form input
-            }, 300); // Delay to allow modal close animation
+                setState("ready");
+                setMessage("");
+                setGroupName("");
+            }, 300);
         }
     };
 
@@ -61,7 +61,7 @@ export const CreateGroupModal = observer(function CreateGroupModal(props: Create
         >
             <Box sx={style}>
                 {state === "ready" && (
-                    <FormControl fullWidth>
+                    <FormControl fullWidth onSubmit={handleFormSubmit}>
                         <Typography id="modal-modal-title" variant="h6" component="h2">
                             Vytvořit novou skupinu
                         </Typography>
@@ -75,7 +75,7 @@ export const CreateGroupModal = observer(function CreateGroupModal(props: Create
                         />
                         <Box display="flex" justifyContent="space-between" mt={2}>
                             <Button variant="outlined" onClick={closeModal}>Zrušit</Button>
-                            <Button variant="contained" onClick={handleFormSubmit}>Vytvořit</Button>
+                            <Button variant="contained" type="submit" onClick={handleFormSubmit}>Vytvořit</Button>
                         </Box>
                     </FormControl>
                 )}

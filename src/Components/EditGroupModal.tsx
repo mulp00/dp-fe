@@ -1,25 +1,12 @@
 import React, {useMemo, useState} from 'react';
 import {observer} from "mobx-react";
-import {
-    Autocomplete,
-    Box,
-    Button,
-    CircularProgress,
-    Container, Divider,
-    FormControl, IconButton, List,
-    ListItem,
-    Modal, Stack, TableRow,
-    TextField,
-    Typography
-} from "@mui/material";
-import MoreVertIcon from "@mui/icons-material/MoreVert";
-import {Group, GroupSnapshotIn} from "../models/MLS/GroupModel";
-import {getSnapshot} from "mobx-state-tree";
+import {Autocomplete, Box, Button, Modal, Stack, TextField, Typography} from "@mui/material";
+import {GroupSnapshotIn} from "../models/MLS/GroupModel";
 import {User} from "../models/User/UserModel";
-import {DataGrid, GridColDef, GridRenderCellParams, GridRow, GridRowParams} from "@mui/x-data-grid";
+import {DataGrid, GridColDef, GridRenderCellParams} from "@mui/x-data-grid";
 import {useApiService} from "../hooks";
 import {GetUsersByEmailResponse} from "../services/api";
-import {Member, MemberSnapshotIn} from "../models/User/MemberModel";
+import {MemberSnapshotIn} from "../models/User/MemberModel";
 
 export type EditGroupModalProps = {
     isOpen: boolean;
@@ -32,13 +19,16 @@ export type EditGroupModalProps = {
 export const EditGroupModal = observer(function EditGroupModal(props: EditGroupModalProps) {
     const apiService = useApiService()
 
-    const [foundUsers, setFoundUsers] = useState<GetUsersByEmailResponse | undefined>()
+    const [foundUsers, setFoundUsers] = useState<MemberSnapshotIn[] | undefined>()
     const [selectedUser, setSelectedUser] = useState<MemberSnapshotIn | null>(null);
     const findUsers = async (event: React.SyntheticEvent<Element, Event>, value: string) => {
         if (value.trim()) {
             const users = await apiService.getUsersByEmail({email: value})
-            setFoundUsers(users)
-        }
+            const filteredUsers = users.filter(user =>
+                !props.group.users?.some(groupUser => groupUser.email === user.email)
+            );
+
+            setFoundUsers(filteredUsers);        }
     }
 
     const memoizedFoundUsers = useMemo(() => {

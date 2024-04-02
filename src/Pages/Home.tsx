@@ -48,7 +48,8 @@ export const Home = observer(function Home() {
     const [isEditGroupModalOpen, setIsEditGroupModalOpen] = useState<boolean>(false)
 
     const [editedGroup, setEditedGroup] = useState<GroupSnapshotIn>({
-        id: "",
+        groupId: "",
+        serializedUserGroupId: "",
         creator: {id: "", email: "", keyPackage: ""},
         name: '',
         serializedGroup: '',
@@ -98,42 +99,67 @@ export const Home = observer(function Home() {
     };
 
     const addUser = async (member: MemberSnapshotIn, group: GroupSnapshotIn) => {
+        try {
+            const provider = new Provider();
+            const identity = Identity.deserialize(userStore.me.serializedIdentity, provider);
 
+            const deserializedGroup = MlsGroup.deserialize(group.serializedGroup);
 
-        apiService.createWelcomeMessage({welcomeMessage: "ahoj", memberId: member.id, groupId: group.id})
+            const deserializedKeyPackage = KeyPackage.deserialize(member.keyPackage)
 
+            const add_msg = deserializedGroup.add_member(
+                provider,
+                identity,
+                deserializedKeyPackage
+            );
 
-        /*const provider = new Provider();
-        const identity = Identity.deserialize(userStore.me.serializedIdentity, provider);
+            try {
+                await apiService.createWelcomeMessage({
+                    welcomeMessage: add_msg.welcome.toString(),
+                    commitMessage: add_msg.commit.toString(),
+                    memberId: member.id,
+                    groupId: group.groupId
+                });
+            } catch (error) {
+                console.error("Failed to create welcome message", error);
+                return false;
+            }
 
-        const deserializedGroup = MlsGroup.deserialize(group.serializedGroup);
+            try {
+                await apiService.updateRatchetTree({
+                    groupId: group.groupId,
+                    ratchetTree: deserializedGroup.export_ratchet_tree().serialize()
+                });
+            } catch (error) {
+                console.error("Failed to update ratchet tree", error);
+                return false;
+            }
 
-        const deserializedKeyPackage = KeyPackage.deserialize(member.keyPackage)
+            let updateSerializedUserGroupResponse;
+            try {
+                updateSerializedUserGroupResponse = await apiService.updateSerializedUserGroup({
+                    serializedUserGroupId: group.serializedUserGroupId,
+                    serializedUserGroup: deserializedGroup.serialize()
+                });
+            } catch (error) {
+                console.error("Failed to update serialized user group", error);
+                return false;
+            }
 
-        const add_msgs = deserializedGroup.add_member(
-            provider,
-            identity,
-            deserializedKeyPackage
-        );
+            console.log(updateSerializedUserGroupResponse);
 
+            setEditedGroup(groupStore.updateGroup(updateSerializedUserGroupResponse));
 
+            provider.free();
+            identity.free();
+            deserializedGroup.free();
+            deserializedKeyPackage.free()
 
-        deserializedGroup.merge_pending_commit(provider);
-
-        //TODO update ratchet tree
-        //TODO post messages
-
-        action("updateGroupStore", () => {
-            groupStore.createNew(createGroupResponse);
-        })();
-
-        provider.free();
-        identity.free();
-        deserializedGroup.free();
-        deserializedKeyPackage.free()
-
-        console.log(member.email)*/
-        return true
+            return true;
+        } catch (error) {
+            console.error("Unexpected error in addUser function", error);
+            return false;
+        }
     }
 
     useEffect(() => {
