@@ -31,11 +31,11 @@ import GroupAddIcon from '@mui/icons-material/GroupAdd';
 import {useDrawer} from "../context/DrawerContext";
 import __wbg_init, {Group as MlsGroup, Identity, KeyPackage, Provider, RatchetTree} from "../utils/crypto/openmls";
 import {applySnapshot, getSnapshot} from "mobx-state-tree";
-import {action} from "mobx";
+import {action, runInAction} from "mobx";
 import {CreateGroupModal, EditGroupModal} from "../Components";
 import {createGroupDefaultModel, Group, GroupSnapshotIn} from "../models/MLS/GroupModel";
 import {MemberSnapshotIn} from "../models/User/MemberModel";
-import {GetGroupsToJoin} from "../services/api";
+import {GetCommitMessagesResponse, GetGroupsToJoin} from "../services/api";
 
 export const Home = observer(function Home() {
     const {userStore, groupStore} = useStores()
@@ -77,7 +77,8 @@ export const Home = observer(function Home() {
 
             const group = MlsGroup.create_new(provider, identity, name);
             const serializedGroup = group.serialize();
-            const serializedRatchetTree = group.export_ratchet_tree().serialize()
+            const ratchetTree = group.export_ratchet_tree()
+            const serializedRatchetTree = ratchetTree.serialize()
 
             const createGroupResponse = await apiService.createGroup(
                 {
@@ -87,12 +88,16 @@ export const Home = observer(function Home() {
                 }
             );
 
-            action("updateGroupStore", () => {
+            // await apiService.updateKeyStore({keyStore: provider.serialize()})
+
+            runInAction(() => {
                 groupStore.createNew(createGroupResponse);
-            })();
+                // userStore.me.setKeyStore(provider.serialize())
+            });
 
             provider.free();
             identity.free();
+            ratchetTree.free()
             group.free();
 
             return "Group successfully created.";
@@ -104,14 +109,19 @@ export const Home = observer(function Home() {
 
     const joinGroups = async () => {
 
-        console.log("join groups")
-        const groupsToJoin: GetGroupsToJoin = await apiService.getGroupsToJoin()
+        const groupsToJoin: {
+            welcomeMessageId: string,
+            id: string,
+            groupId: string,
+            message: string,
+            ratchetTree: string,
+            epoch: string
+        }[] = (await apiService.getGroupsToJoin()).welcomeMessages
 
         const provider = Provider.deserialize(userStore.me.keyStore);
-        const identity = Identity.deserialize(provider, userStore.me.serializedIdentity)
 
 
-        for (const group of groupsToJoin.welcomeMessages) {
+        for (const group of groupsToJoin) {
             const groupToJoin = MlsGroup.join(provider, stringToUint8Array(group.message), RatchetTree.deserialize(group.ratchetTree))
 
             console.log(group.welcomeMessageId)
@@ -125,10 +135,16 @@ export const Home = observer(function Home() {
 
             groupStore.createNew(persistedSerializedUserGroup)
 
-            //TODO Post na novou serialized group a pak ten response pridat do groupStore
+            groupToJoin.free()
 
         }
 
+        if(groupsToJoin.length !== 0) await apiService.updateKeyStore({keyStore: provider.serialize()})
+        runInAction(() => {
+            userStore.me.setKeyStore(provider.serialize())
+        });
+
+        provider.free()
 
     }
 
@@ -149,25 +165,24 @@ export const Home = observer(function Home() {
 
             deserializedGroup.merge_pending_commit(provider)
 
+            // await apiService.updateKeyStore({keyStore: provider.serialize()})
+            // runInAction(() => {
+            //     userStore.me.setKeyStore(provider.serialize())
+            // });
+
+            const ratchetTree = deserializedGroup.export_ratchet_tree()
+            const serializedRatchetTree = ratchetTree.serialize()
+
             try {
                 await apiService.createWelcomeMessage({
                     welcomeMessage: add_msg.welcome.toString(),
                     commitMessage: add_msg.commit.toString(),
                     memberId: member.id,
-                    groupId: group.groupId
+                    groupId: group.groupId,
+                    ratchetTree: serializedRatchetTree,
                 });
             } catch (error) {
                 console.error("Failed to create welcome message", error);
-                return false;
-            }
-
-            try {
-                await apiService.updateRatchetTree({
-                    groupId: group.groupId,
-                    ratchetTree: deserializedGroup.export_ratchet_tree().serialize()
-                });
-            } catch (error) {
-                console.error("Failed to update ratchet tree", error);
                 return false;
             }
 
@@ -175,7 +190,8 @@ export const Home = observer(function Home() {
             try {
                 updateSerializedUserGroupResponse = await apiService.updateSerializedUserGroup({
                     serializedUserGroupId: group.serializedUserGroupId,
-                    serializedUserGroup: deserializedGroup.serialize()
+                    serializedUserGroup: deserializedGroup.serialize(),
+                    epoch: group.epoch + 1,
                 });
             } catch (error) {
                 console.error("Failed to update serialized user group", error);
@@ -183,6 +199,7 @@ export const Home = observer(function Home() {
             }
 
             setEditedGroup(groupStore.updateGroup(updateSerializedUserGroupResponse));
+
 
             provider.free();
             identity.free();
@@ -196,15 +213,75 @@ export const Home = observer(function Home() {
         }
     }
 
+    const catchUpOnEpoch = async () => {
+        const provider = Provider.deserialize(userStore.me.keyStore);
+
+        for (const group of groupStore.groups) {
+            const commitMessages: {
+                message: string;
+                epoch: number;
+            }[] = (await apiService.getCommitMessages({groupId: group.groupId, epoch: group.lastEpoch})).messages
+
+            console.log(group.epoch)
+            if (commitMessages.length === 0) continue
+
+            const deserializedGroup = MlsGroup.deserialize(group.serializedGroup);
+
+            commitMessages.sort((a, b) => a.epoch - b.epoch);
+
+            for (const commitMessage of commitMessages) {
+
+                console.log('processing message', commitMessage.epoch)
+
+                deserializedGroup.process_message(provider, stringToUint8Array(commitMessage.message))
+
+                runInAction(() => {
+                    group.setLastEpoch(commitMessage.epoch);
+                });
+            }
+
+            deserializedGroup.merge_pending_commit(provider)
+
+            console.log('persisting group after processing message')
+            try {
+                const updateSerializedUserGroupResponse = await apiService.updateSerializedUserGroup({
+                    serializedUserGroupId: group.serializedUserGroupId,
+                    serializedUserGroup: deserializedGroup.serialize(),
+                    epoch: group.epoch,
+                });
+                groupStore.updateGroup(updateSerializedUserGroupResponse)
+            } catch (error) {
+                console.error("Failed to update serialized user group", error);
+                return false;
+            }
+
+            deserializedGroup.free()
+        }
+
+        provider.free()
+
+    }
+
     useEffect(() => {
         const initializeWasm = async () => {
             await __wbg_init();
         }
         if (!isWasmInitialized) {
-            initializeWasm().then(() => {
+            initializeWasm().then(async () => {
+                const provider = Provider.deserialize(userStore.me.keyStore);
+
                 if (!initialLoadDone) {
-                    joinGroups();
-                    loadGroups();
+                    await joinGroups();
+                    await loadGroups();
+                    await catchUpOnEpoch();
+                    groupStore.groups.forEach((group) => {
+                        const deserializedgroup = MlsGroup.deserialize(group.serializedGroup)
+                        console.log(deserializedgroup.export_key(provider, 'exported', new Uint8Array(32).fill(0x30),
+                            32)
+                        )
+                        deserializedgroup.free()
+                        console.log(group.lastEpoch)
+                    })
                     setInitialLoadDone(true);
                 }
             });

@@ -25,6 +25,12 @@ export const GroupModel = types
             self.users.forEach((user)=>user.clear())
             self.users.clear()
         },
+        setEpoch(epoch: number){
+            self.epoch = epoch
+        },
+        setLastEpoch(lastEpoch: number){
+            self.lastEpoch = lastEpoch
+        }
     })) // eslint-disable-line @typescript-eslint/no-unused-vars
 
 export interface Group extends Instance<typeof GroupModel> {

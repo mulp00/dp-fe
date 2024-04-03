@@ -18,6 +18,9 @@ export const UserModel = types
         clear(){
           self.email = ""
           self.serializedIdentity = ""
+        },
+        setKeyStore(keyStore: string){
+            self.keyStore = keyStore
         }
     })) // eslint-disable-line @typescript-eslint/no-unused-vars
 

@@ -78,15 +78,18 @@ export interface PostWelcomeMessage {
     memberId: string;
     welcomeMessage: string;
     commitMessage: string;
-}
-
-export interface PatchRatchetTree{
-    groupId: string;
     ratchetTree: string;
 }
-export interface PatchSerializedUserGroup{
+
+// export interface PatchRatchetTree {
+//     groupId: string;
+//     ratchetTree: string;
+// }
+
+export interface PatchSerializedUserGroup {
     serializedUserGroupId: string;
     serializedUserGroup: string;
+    epoch:number;
 }
 
 export type GetGroupsToJoin = {
@@ -102,11 +105,29 @@ export type GetGroupsToJoin = {
     ]
 }
 
-interface CreateSerializedUserGroupAfterJoinPayload{
+export interface CreateSerializedUserGroupAfterJoinPayload {
     groupId: string,
     serializedUserGroup: string,
     epoch: string,
     welcomeMessageId: string,
+}
+
+export interface GetCommitMessagesPayload {
+    groupId: string;
+    epoch: number;
+}
+
+export interface GetCommitMessagesResponse {
+    messages: [
+        {
+            message: string;
+            epoch: number;
+        }
+    ]
+}
+
+export interface PatchKeyStore{
+    keyStore: string;
 }
 
 class ApiService {
@@ -222,13 +243,14 @@ class ApiService {
         }).then(response => response.data);
     }
 
-    public async updateRatchetTree(payload: PatchRatchetTree): Promise<string> {
-        return this.axiosInstance.patch<string>('/updateRatchetTree', payload, {
-            headers: {
-                "Content-type": "application/merge-patch+json"
-            }
-        }).then(response => response.data);
-    }
+    // public async updateRatchetTree(payload: PatchRatchetTree): Promise<string> {
+    //     return this.axiosInstance.patch<string>('/updateRatchetTree', payload, {
+    //         headers: {
+    //             "Content-type": "application/merge-patch+json"
+    //         }
+    //     }).then(response => response.data);
+    // }
+
     public async updateSerializedUserGroup(payload: PatchSerializedUserGroup): Promise<GroupResponse> {
         return this.axiosInstance.patch<GroupResponse>('/updateSerializedUserGroup', payload, {
             headers: {
@@ -236,6 +258,14 @@ class ApiService {
             }
         }).then(response => response.data);
     }
+    public async updateKeyStore(payload: PatchKeyStore): Promise<string> {
+        return this.axiosInstance.patch<string>('/updateKeyStore', payload, {
+            headers: {
+                "Content-type": "application/merge-patch+json"
+            }
+        }).then(response => response.data);
+    }
+
     public async getGroupsToJoin(): Promise<GetGroupsToJoin> {
         return this.axiosInstance.get<GetGroupsToJoin>(`/getGroupsToJoin`, {
             headers: {
@@ -243,8 +273,17 @@ class ApiService {
             }
         }).then(response => response.data);
     }
+
     public async createSerializedUserGroupAfterJoin(payload: CreateSerializedUserGroupAfterJoinPayload): Promise<GroupResponse> {
-        return this.axiosInstance.post<GroupResponse>(`/createSerializedUserGroupAfterJoin`, payload,{
+        return this.axiosInstance.post<GroupResponse>(`/createSerializedUserGroupAfterJoin`, payload, {
+            headers: {
+                "Content-type": "application/ld+json"
+            }
+        }).then(response => response.data);
+    }
+
+    public async getCommitMessages(payload: GetCommitMessagesPayload): Promise<GetCommitMessagesResponse> {
+        return this.axiosInstance.post<GetCommitMessagesResponse>(`/getCommitMessages`, payload, {
             headers: {
                 "Content-type": "application/ld+json"
             }
