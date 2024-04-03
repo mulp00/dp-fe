@@ -5,7 +5,6 @@ import {GroupSnapshotIn} from "../models/MLS/GroupModel";
 import {User} from "../models/User/UserModel";
 import {DataGrid, GridColDef, GridRenderCellParams} from "@mui/x-data-grid";
 import {useApiService} from "../hooks";
-import {GetUsersByEmailResponse} from "../services/api";
 import {MemberSnapshotIn} from "../models/User/MemberModel";
 
 export type EditGroupModalProps = {
@@ -14,6 +13,7 @@ export type EditGroupModalProps = {
     group: GroupSnapshotIn
     me: User
     handleAddUser: (member: MemberSnapshotIn, group: GroupSnapshotIn) => Promise<boolean>
+    // handleRemoveUser: (member: MemberSnapshotIn, group: GroupSnapshotIn) => Promise<boolean>
 };
 
 export const EditGroupModal = observer(function EditGroupModal(props: EditGroupModalProps) {
@@ -80,7 +80,7 @@ export const EditGroupModal = observer(function EditGroupModal(props: EditGroupM
             width: 150,
             renderCell: (params: GridRenderCellParams<User>) => (
                 params.value.email === props.group?.creator.email ?
-                    <Button variant="outlined" disabled color="error">Odebrat</Button> :
+                    <Button variant="outlined" disabled color="error">Zakázáno</Button> :
                     params.value.email === props.me.email ?
                         <Button variant="outlined" color="error">Opustit</Button> :
                         <Button variant="outlined" color="error">Odebrat</Button>
@@ -103,22 +103,24 @@ export const EditGroupModal = observer(function EditGroupModal(props: EditGroupM
                 <Typography id="modal-modal-title" variant="h6" component="h2">
                     Editovat skupinu
                 </Typography>
-                <Stack spacing={2} direction="row">
+                <Stack spacing={2} direction="row" paddingY={5}>
                     <Autocomplete
                         disablePortal
                         options={memoizedFoundUsers}
                         getOptionLabel={(option) => option.email || ""}
+                        noOptionsText={"Zadejte email uživatele"}
                         onInputChange={findUsers}
                         onChange={(event, value: MemberSnapshotIn | null) => setSelectedUser(value)}
                         value={selectedUser}
                         isOptionEqualToValue={(option, value) => option.email === value.email}
                         sx={{width: 300}}
-                        renderInput={(params) => <TextField {...params} label="Přidat uživatele"/>}
+                        renderInput={(params) => <TextField {...params} label="Vyhledat uživate"/>}
                     />
-                    <Button onClick={handleAddButtonClick}>Add</Button>
+                    <Button variant="contained" onClick={handleAddButtonClick}>Přidat</Button>
                 </Stack>
                 <Box style={{height: 400, width: '100%'}}>
                     <DataGrid
+                        disableColumnSelector
                         rows={rows}
                         columns={columns}
                     />

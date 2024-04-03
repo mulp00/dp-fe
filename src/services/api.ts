@@ -6,7 +6,7 @@ export interface Member {
     keyPackage: string;
 }
 
-export interface GroupResponse {
+export type GroupResponse = {
     groupId: string;
     serializedUserGroupId: string;
     name: string;
@@ -15,6 +15,8 @@ export interface GroupResponse {
     users: [
         Member
     ];
+    lastEpoch: number;
+    epoch: number;
 }
 
 export interface RegisterPayload {
@@ -26,6 +28,7 @@ export interface RegisterPayload {
     };
     serializedIdentity: string;
     keyPackage: string;
+    keyStore: string;
 }
 
 export interface LoginPayload {
@@ -67,32 +70,43 @@ export type GetUsersByEmailResponse = [
 
 
 export type GetGroupCollection = [
-    {
-        groupId: string;
-        serializedUserGroupId: string;
-        name: string;
-        creator: Member;
-        serializedGroup: string;
-        users: [
-            Member
-        ];
-    }
+    GroupResponse
 ];
 
-interface PostWelcomeMessage {
+export interface PostWelcomeMessage {
     groupId: string;
     memberId: string;
     welcomeMessage: string;
     commitMessage: string;
 }
 
-interface PatchRatchetTree{
+export interface PatchRatchetTree{
     groupId: string;
     ratchetTree: string;
 }
-interface PatchSerializedUserGroup{
+export interface PatchSerializedUserGroup{
     serializedUserGroupId: string;
     serializedUserGroup: string;
+}
+
+export type GetGroupsToJoin = {
+    welcomeMessages: [
+        {
+            welcomeMessageId: string;
+            id: string;
+            groupId: string;
+            message: string,
+            ratchetTree: string,
+            epoch: string,
+        }
+    ]
+}
+
+interface CreateSerializedUserGroupAfterJoinPayload{
+    groupId: string,
+    serializedUserGroup: string,
+    epoch: string,
+    welcomeMessageId: string,
 }
 
 class ApiService {
@@ -222,6 +236,21 @@ class ApiService {
             }
         }).then(response => response.data);
     }
+    public async getGroupsToJoin(): Promise<GetGroupsToJoin> {
+        return this.axiosInstance.get<GetGroupsToJoin>(`/getGroupsToJoin`, {
+            headers: {
+                "Content-type": "application/ld+json"
+            }
+        }).then(response => response.data);
+    }
+    public async createSerializedUserGroupAfterJoin(payload: CreateSerializedUserGroupAfterJoinPayload): Promise<GroupResponse> {
+        return this.axiosInstance.post<GroupResponse>(`/createSerializedUserGroupAfterJoin`, payload,{
+            headers: {
+                "Content-type": "application/ld+json"
+            }
+        }).then(response => response.data);
+    }
+
 }
 
 const apiService = new ApiService();

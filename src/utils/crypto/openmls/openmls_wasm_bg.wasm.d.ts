@@ -3,6 +3,8 @@
 export const memory: WebAssembly.Memory;
 export function __wbg_leafnodeindex_free(a: number): void;
 export function __wbg_provider_free(a: number): void;
+export function provider_serialize(a: number, b: number): void;
+export function provider_deserialize(a: number, b: number, c: number): void;
 export function provider_new(): number;
 export function greet(): void;
 export function __wbg_identity_free(a: number): void;

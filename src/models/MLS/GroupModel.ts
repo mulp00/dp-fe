@@ -10,7 +10,9 @@ export const GroupModel = types
         name: types.string,
         creator: MemberModel,
         serializedGroup: types.string,
-        users: types.array(MemberModel)
+        users: types.array(MemberModel),
+        lastEpoch: types.integer,
+        epoch: types.integer,
     })
     .actions(withSetPropAction)
     .views((self) => ({})) // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -40,4 +42,6 @@ export const createGroupDefaultModel = () => types.optional(GroupModel, {
     creator: {id:"", email: "", keyPackage: ""},
     name: '',
     serializedGroup: '',
+    lastEpoch: 1,
+    epoch: 1,
 })

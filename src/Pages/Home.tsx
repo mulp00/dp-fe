@@ -29,16 +29,18 @@ import KeyIcon from '@mui/icons-material/Key';
 import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
 import GroupAddIcon from '@mui/icons-material/GroupAdd';
 import {useDrawer} from "../context/DrawerContext";
-import __wbg_init, {Group as MlsGroup, Identity, KeyPackage, Provider} from "../utils/crypto/openmls";
+import __wbg_init, {Group as MlsGroup, Identity, KeyPackage, Provider, RatchetTree} from "../utils/crypto/openmls";
 import {applySnapshot, getSnapshot} from "mobx-state-tree";
 import {action} from "mobx";
 import {CreateGroupModal, EditGroupModal} from "../Components";
 import {createGroupDefaultModel, Group, GroupSnapshotIn} from "../models/MLS/GroupModel";
 import {MemberSnapshotIn} from "../models/User/MemberModel";
+import {GetGroupsToJoin} from "../services/api";
 
 export const Home = observer(function Home() {
     const {userStore, groupStore} = useStores()
     const [isWasmInitialized, setWasmInitialized] = useState<boolean>(false);
+    const [initialLoadDone, setInitialLoadDone] = useState(false);
     const apiService = useApiService()
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -53,12 +55,14 @@ export const Home = observer(function Home() {
         creator: {id: "", email: "", keyPackage: ""},
         name: '',
         serializedGroup: '',
+        lastEpoch: 1,
+        epoch: 1,
     })
 
-    useEffect(() => {
-
-        loadGroups()
-    }, [apiService, groupStore.groups]);
+    function stringToUint8Array(inputString: string): Uint8Array {
+        const numberArray = inputString.split(',').map(Number);
+        return new Uint8Array(numberArray);
+    }
 
     const loadGroups = async () => {
         const groups = await apiService.getGroupCollection()
@@ -68,8 +72,8 @@ export const Home = observer(function Home() {
 
     const createGroup = async (name: string) => {
         try {
-            const provider = new Provider();
-            const identity = Identity.deserialize(userStore.me.serializedIdentity, provider);
+            const provider = Provider.deserialize(userStore.me.keyStore);
+            const identity = Identity.deserialize(provider, userStore.me.serializedIdentity);
 
             const group = MlsGroup.create_new(provider, identity, name);
             const serializedGroup = group.serialize();
@@ -98,10 +102,40 @@ export const Home = observer(function Home() {
         }
     };
 
+    const joinGroups = async () => {
+
+        console.log("join groups")
+        const groupsToJoin: GetGroupsToJoin = await apiService.getGroupsToJoin()
+
+        const provider = Provider.deserialize(userStore.me.keyStore);
+        const identity = Identity.deserialize(provider, userStore.me.serializedIdentity)
+
+
+        for (const group of groupsToJoin.welcomeMessages) {
+            const groupToJoin = MlsGroup.join(provider, stringToUint8Array(group.message), RatchetTree.deserialize(group.ratchetTree))
+
+            console.log(group.welcomeMessageId)
+
+            const persistedSerializedUserGroup = await apiService.createSerializedUserGroupAfterJoin({
+                groupId: group.groupId,
+                serializedUserGroup: groupToJoin.serialize(),
+                epoch: group.epoch,
+                welcomeMessageId: group.welcomeMessageId
+            })
+
+            groupStore.createNew(persistedSerializedUserGroup)
+
+            //TODO Post na novou serialized group a pak ten response pridat do groupStore
+
+        }
+
+
+    }
+
     const addUser = async (member: MemberSnapshotIn, group: GroupSnapshotIn) => {
         try {
-            const provider = new Provider();
-            const identity = Identity.deserialize(userStore.me.serializedIdentity, provider);
+            const provider = Provider.deserialize(userStore.me.keyStore);
+            const identity = Identity.deserialize(provider, userStore.me.serializedIdentity);
 
             const deserializedGroup = MlsGroup.deserialize(group.serializedGroup);
 
@@ -112,6 +146,8 @@ export const Home = observer(function Home() {
                 identity,
                 deserializedKeyPackage
             );
+
+            deserializedGroup.merge_pending_commit(provider)
 
             try {
                 await apiService.createWelcomeMessage({
@@ -146,8 +182,6 @@ export const Home = observer(function Home() {
                 return false;
             }
 
-            console.log(updateSerializedUserGroupResponse);
-
             setEditedGroup(groupStore.updateGroup(updateSerializedUserGroupResponse));
 
             provider.free();
@@ -167,10 +201,16 @@ export const Home = observer(function Home() {
             await __wbg_init();
         }
         if (!isWasmInitialized) {
-            initializeWasm();
+            initializeWasm().then(() => {
+                if (!initialLoadDone) {
+                    joinGroups();
+                    loadGroups();
+                    setInitialLoadDone(true);
+                }
+            });
             setWasmInitialized(true);
         }
-    }, [isWasmInitialized])
+    }, [isWasmInitialized, initialLoadDone]);
 
     const groups = groupStore.groups.map((group) => {
         return {name: group.name, members: group.users.length}

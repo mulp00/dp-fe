@@ -138,11 +138,11 @@ export class Identity {
 */
   serialize(): string;
 /**
-* @param {string} serialized
 * @param {Provider} provider
+* @param {string} serialized
 * @returns {Identity}
 */
-  static deserialize(serialized: string, provider: Provider): Identity;
+  static deserialize(provider: Provider, serialized: string): Identity;
 }
 /**
 */
@@ -172,6 +172,15 @@ export class NoWelcomeError {
 */
 export class Provider {
   free(): void;
+/**
+* @returns {string}
+*/
+  serialize(): string;
+/**
+* @param {string} json_str
+* @returns {Provider}
+*/
+  static deserialize(json_str: string): Provider;
 /**
 */
   constructor();
@@ -245,6 +254,8 @@ export interface InitOutput {
   readonly memory: WebAssembly.Memory;
   readonly __wbg_leafnodeindex_free: (a: number) => void;
   readonly __wbg_provider_free: (a: number) => void;
+  readonly provider_serialize: (a: number, b: number) => void;
+  readonly provider_deserialize: (a: number, b: number, c: number) => void;
   readonly provider_new: () => number;
   readonly greet: () => void;
   readonly __wbg_identity_free: (a: number) => void;
