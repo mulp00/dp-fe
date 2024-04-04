@@ -5,7 +5,7 @@ import {GroupSnapshotIn} from "../models/MLS/GroupModel";
 import {User} from "../models/User/UserModel";
 import {DataGrid, GridColDef, GridRenderCellParams} from "@mui/x-data-grid";
 import {useApiService} from "../hooks";
-import {MemberSnapshotIn} from "../models/User/MemberModel";
+import {Member, MemberSnapshotIn} from "../models/User/MemberModel";
 
 export type EditGroupModalProps = {
     isOpen: boolean;
@@ -13,7 +13,7 @@ export type EditGroupModalProps = {
     group: GroupSnapshotIn
     me: User
     handleAddUser: (member: MemberSnapshotIn, group: GroupSnapshotIn) => Promise<boolean>
-    // handleRemoveUser: (member: MemberSnapshotIn, group: GroupSnapshotIn) => Promise<boolean>
+    handleRemoveUser: (member: MemberSnapshotIn, group: GroupSnapshotIn) => Promise<boolean>
 };
 
 export const EditGroupModal = observer(function EditGroupModal(props: EditGroupModalProps) {
@@ -38,6 +38,7 @@ export const EditGroupModal = observer(function EditGroupModal(props: EditGroupM
     const handleAddButtonClick = async () => {
         if (selectedUser) {
             await props.handleAddUser(selectedUser, props.group);
+            setSelectedUser(null)
         }
     };
 
@@ -67,7 +68,7 @@ export const EditGroupModal = observer(function EditGroupModal(props: EditGroupM
             headerName: 'Uživatel',
             flex: 1,
             minWidth: 100,
-            renderCell: (params: GridRenderCellParams<User>) => (
+            renderCell: (params: GridRenderCellParams<Member>) => (
                 <Box sx={{display: 'flex', alignItems: 'center', height: '100%'}}>
                     <Typography variant="body2">{params.value.email}</Typography>
                 </Box>
@@ -78,12 +79,12 @@ export const EditGroupModal = observer(function EditGroupModal(props: EditGroupM
             field: 'action',
             headerName: 'Akce',
             width: 150,
-            renderCell: (params: GridRenderCellParams<User>) => (
+            renderCell: (params: GridRenderCellParams<Member>) => (
                 params.value.email === props.group?.creator.email ?
                     <Button variant="outlined" disabled color="error">Zakázáno</Button> :
                     params.value.email === props.me.email ?
                         <Button variant="outlined" color="error">Opustit</Button> :
-                        <Button variant="outlined" color="error">Odebrat</Button>
+                        <Button variant="outlined" onClick={()=>props.handleRemoveUser(params.value, props.group)} color="error">Odebrat</Button>
             ),
         }
     ];

@@ -58,7 +58,10 @@ export const Register = observer(function Register() {
 
             const setup = await mfkdf.setup.key([
                 await mfkdf.setup.factors.password(state.password),
-                await mfkdf.setup.factors.totp(),
+                await mfkdf.setup.factors.totp({
+                    label: state.email,
+                    issuer: "SHARY"
+                }),
             ], {size: 32})
 
             setQr(setup.outputs.totp.uri)
@@ -74,6 +77,8 @@ export const Register = observer(function Register() {
                 keyPackage: keyPackage,
                 keyStore: keyStore,
             };
+
+            console.log(keyStore)
 
             try {
                 await api.register(payload);

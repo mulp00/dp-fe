@@ -65,9 +65,13 @@ export const Home = observer(function Home() {
     }
 
     const loadGroups = async () => {
-        const groups = await apiService.getGroupCollection()
-        applySnapshot(groupStore.groups, groups)
-
+        try {
+            const groups = await apiService.getGroupCollection()
+            applySnapshot(groupStore.groups, groups)
+        } catch (error) {
+            console.error("Unexpected error in while loading groups", error);
+            return false;
+        }
     }
 
     const createGroup = async (name: string) => {
@@ -88,11 +92,14 @@ export const Home = observer(function Home() {
                 }
             );
 
-            // await apiService.updateKeyStore({keyStore: provider.serialize()})
+            const keyStoreToUpdate = JSON.stringify({...JSON.parse(provider.serialize()), ...JSON.parse(userStore.me.keyStore)})
+            await apiService.updateKeyStore({keyStore: keyStoreToUpdate})
+            runInAction(() => {
+                userStore.me.setKeyStore(keyStoreToUpdate)
+            });
 
             runInAction(() => {
                 groupStore.createNew(createGroupResponse);
-                // userStore.me.setKeyStore(provider.serialize())
             });
 
             provider.free();
@@ -108,44 +115,49 @@ export const Home = observer(function Home() {
     };
 
     const joinGroups = async () => {
+        try {
+            const groupsToJoin: {
+                welcomeMessageId: string,
+                id: string,
+                groupId: string,
+                message: string,
+                ratchetTree: string,
+                epoch: string
+            }[] = (await apiService.getGroupsToJoin()).welcomeMessages
 
-        const groupsToJoin: {
-            welcomeMessageId: string,
-            id: string,
-            groupId: string,
-            message: string,
-            ratchetTree: string,
-            epoch: string
-        }[] = (await apiService.getGroupsToJoin()).welcomeMessages
-
-        const provider = Provider.deserialize(userStore.me.keyStore);
+            const provider = Provider.deserialize(userStore.me.keyStore);
 
 
-        for (const group of groupsToJoin) {
-            const groupToJoin = MlsGroup.join(provider, stringToUint8Array(group.message), RatchetTree.deserialize(group.ratchetTree))
+            for (const group of groupsToJoin) {
 
-            console.log(group.welcomeMessageId)
 
-            const persistedSerializedUserGroup = await apiService.createSerializedUserGroupAfterJoin({
-                groupId: group.groupId,
-                serializedUserGroup: groupToJoin.serialize(),
-                epoch: group.epoch,
-                welcomeMessageId: group.welcomeMessageId
-            })
+                const groupToJoin = MlsGroup.join(provider, stringToUint8Array(group.message), RatchetTree.deserialize(group.ratchetTree))
 
-            groupStore.createNew(persistedSerializedUserGroup)
+                const persistedSerializedUserGroup = await apiService.createSerializedUserGroupAfterJoin({
+                    groupId: group.groupId,
+                    serializedUserGroup: groupToJoin.serialize(),
+                    epoch: group.epoch,
+                    welcomeMessageId: group.welcomeMessageId
+                })
 
-            groupToJoin.free()
+                groupStore.createNew(persistedSerializedUserGroup)
 
+                groupToJoin.free()
+
+            }
+
+            const keyStoreToUpdate = JSON.stringify({...JSON.parse(provider.serialize()), ...JSON.parse(userStore.me.keyStore)})
+            await apiService.updateKeyStore({keyStore: keyStoreToUpdate})
+            runInAction(() => {
+                userStore.me.setKeyStore(keyStoreToUpdate)
+            });
+
+
+            provider.free()
+        } catch (error) {
+            console.error("Unexpected error while joining group", error);
+            return false;
         }
-
-        if(groupsToJoin.length !== 0) await apiService.updateKeyStore({keyStore: provider.serialize()})
-        runInAction(() => {
-            userStore.me.setKeyStore(provider.serialize())
-        });
-
-        provider.free()
-
     }
 
     const addUser = async (member: MemberSnapshotIn, group: GroupSnapshotIn) => {
@@ -165,10 +177,11 @@ export const Home = observer(function Home() {
 
             deserializedGroup.merge_pending_commit(provider)
 
-            // await apiService.updateKeyStore({keyStore: provider.serialize()})
-            // runInAction(() => {
-            //     userStore.me.setKeyStore(provider.serialize())
-            // });
+            const keyStoreToUpdate = JSON.stringify({...JSON.parse(provider.serialize()), ...JSON.parse(userStore.me.keyStore)})
+            await apiService.updateKeyStore({keyStore: keyStoreToUpdate})
+            runInAction(() => {
+                userStore.me.setKeyStore(keyStoreToUpdate)
+            });
 
             const ratchetTree = deserializedGroup.export_ratchet_tree()
             const serializedRatchetTree = ratchetTree.serialize()
@@ -208,61 +221,130 @@ export const Home = observer(function Home() {
 
             return true;
         } catch (error) {
-            console.error("Unexpected error in addUser function", error);
+            console.error("Unexpected error while adding user ", error);
             return false;
         }
     }
 
     const catchUpOnEpoch = async () => {
-        const provider = Provider.deserialize(userStore.me.keyStore);
+        try {
+            const provider = Provider.deserialize(userStore.me.keyStore);
 
-        for (const group of groupStore.groups) {
-            const commitMessages: {
-                message: string;
-                epoch: number;
-            }[] = (await apiService.getCommitMessages({groupId: group.groupId, epoch: group.lastEpoch})).messages
+            for (const group of groupStore.groups) {
+                const commitMessages: {
+                    message: string;
+                    epoch: number;
+                }[] = (await apiService.getCommitMessages({groupId: group.groupId, epoch: group.lastEpoch})).messages
 
-            console.log(group.epoch)
-            if (commitMessages.length === 0) continue
+                if (commitMessages.length === 0) continue
+
+                const deserializedGroup = MlsGroup.deserialize(group.serializedGroup);
+
+                commitMessages.sort((a, b) => a.epoch - b.epoch);
+
+                for (const commitMessage of commitMessages) {
+
+                    deserializedGroup.process_message(provider, stringToUint8Array(commitMessage.message))
+
+                    runInAction(() => {
+                        group.setLastEpoch(commitMessage.epoch);
+                    });
+                }
+
+                deserializedGroup.merge_pending_commit(provider)
+
+                try {
+                    const updateSerializedUserGroupResponse = await apiService.updateSerializedUserGroup({
+                        serializedUserGroupId: group.serializedUserGroupId,
+                        serializedUserGroup: deserializedGroup.serialize(),
+                        epoch: group.epoch,
+                    });
+                    groupStore.updateGroup(updateSerializedUserGroupResponse)
+                } catch (error) {
+                    console.error("Failed to update serialized user group", error);
+                    return false;
+                }
+
+                deserializedGroup.free()
+            }
+
+            provider.free()
+        } catch (error) {
+            console.error("Unexpected error while catching up on epoch", error);
+            return false;
+        }
+    }
+
+    const removeUser = async (member: MemberSnapshotIn, group: GroupSnapshotIn) => {
+        try {
+            const provider = Provider.deserialize(userStore.me.keyStore);
+            const identity = Identity.deserialize(provider, userStore.me.serializedIdentity);
 
             const deserializedGroup = MlsGroup.deserialize(group.serializedGroup);
 
-            commitMessages.sort((a, b) => a.epoch - b.epoch);
+            const deserializedRemovedMemberKeyPackage = KeyPackage.deserialize(member.keyPackage)
 
-            for (const commitMessage of commitMessages) {
+            const removedMemberIndex = deserializedGroup.get_member_index(deserializedRemovedMemberKeyPackage)
 
-                console.log('processing message', commitMessage.epoch)
+            const deserializedKeyPackage = KeyPackage.deserialize(member.keyPackage)
 
-                deserializedGroup.process_message(provider, stringToUint8Array(commitMessage.message))
-
-                runInAction(() => {
-                    group.setLastEpoch(commitMessage.epoch);
-                });
-            }
+            const add_msg = deserializedGroup.remove_member(
+                provider,
+                identity,
+                removedMemberIndex
+            );
 
             deserializedGroup.merge_pending_commit(provider)
 
-            console.log('persisting group after processing message')
+            const keyStoreToUpdate = JSON.stringify({...JSON.parse(provider.serialize()), ...JSON.parse(userStore.me.keyStore)})
+            await apiService.updateKeyStore({keyStore: keyStoreToUpdate})
+            runInAction(() => {
+                userStore.me.setKeyStore(keyStoreToUpdate)
+            });
+
+
             try {
-                const updateSerializedUserGroupResponse = await apiService.updateSerializedUserGroup({
+                await apiService.createCommitMessage({
+                    message: add_msg.commit.toString(),
+                    groupId: group.groupId,
+                    userId: member.id,
+                    epoch: group.epoch
+                });
+            } catch (error) {
+                console.error("Failed to remove user", error);
+                return false;
+            }
+
+            let updateSerializedUserGroupResponse;
+            try {
+                updateSerializedUserGroupResponse = await apiService.updateSerializedUserGroup({
                     serializedUserGroupId: group.serializedUserGroupId,
                     serializedUserGroup: deserializedGroup.serialize(),
-                    epoch: group.epoch,
+                    epoch: group.epoch + 1,
                 });
-                groupStore.updateGroup(updateSerializedUserGroupResponse)
             } catch (error) {
                 console.error("Failed to update serialized user group", error);
                 return false;
             }
 
-            deserializedGroup.free()
+            setEditedGroup(groupStore.updateGroup(updateSerializedUserGroupResponse));
+
+
+            provider.free();
+            identity.free();
+            deserializedGroup.free();
+            deserializedKeyPackage.free()
+
+            return true;
+        } catch (error) {
+            console.error("Unexpected error while removing user ", error);
+            return false;
         }
-
-        provider.free()
-
     }
 
     useEffect(() => {
+        console.log(userStore.me.keyStore)
+
         const initializeWasm = async () => {
             await __wbg_init();
         }
@@ -407,6 +489,7 @@ export const Home = observer(function Home() {
                 group={editedGroup}
                 me={userStore.me}
                 handleAddUser={addUser}
+                handleRemoveUser={removeUser}
             />
             <Box
                 sx={{

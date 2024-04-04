@@ -130,6 +130,13 @@ export interface PatchKeyStore{
     keyStore: string;
 }
 
+export interface CommitMessagePayload{
+    message: string;
+    groupId: string;
+    userId: string;
+    epoch: number;
+}
+
 class ApiService {
     private axiosInstance: AxiosInstance;
 
@@ -237,6 +244,13 @@ class ApiService {
 
     public async createWelcomeMessage(payload: PostWelcomeMessage): Promise<string> {
         return this.axiosInstance.post<string>('/welcomeMessage', payload, {
+            headers: {
+                "Content-type": "application/ld+json"
+            }
+        }).then(response => response.data);
+    }
+    public async createCommitMessage(payload: CommitMessagePayload): Promise<string> {
+        return this.axiosInstance.post<string>('/commitMessage', payload, {
             headers: {
                 "Content-type": "application/ld+json"
             }
