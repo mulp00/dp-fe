@@ -397,19 +397,19 @@ export const Home = observer(function Home() {
         }
         if (!isWasmInitialized) {
             initializeWasm().then(async () => {
-                const provider = Provider.deserialize(userStore.me.keyStore);
+                // const provider = Provider.deserialize(userStore.me.keyStore);
 
                 if (!initialLoadDone) {
                     await joinGroups();
                     await loadGroups();
                     await catchUpOnEpoch();
-                    groupStore.groups.forEach((group) => {
-                        const deserializedgroup = MlsGroup.deserialize(group.serializedGroup)
-                        console.log(deserializedgroup.export_key(provider, 'exported', new Uint8Array(32).fill(0x30),
-                            32)
-                        )
-                        deserializedgroup.free()
-                    })
+                    // groupStore.groups.forEach((group) => {
+                    //     const deserializedgroup = MlsGroup.deserialize(group.serializedGroup)
+                    //     console.log(deserializedgroup.export_key(provider, 'exported', new Uint8Array(32).fill(0x30),
+                    //         32)
+                    //     )
+                    //     deserializedgroup.free()
+                    // })
                     setInitialLoadDone(true);
                 }
             });

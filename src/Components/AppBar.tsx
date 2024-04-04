@@ -97,10 +97,11 @@ const ResponsiveAppBar: FC = observer(function ResponsiveAppBar() {
         <>
             <ConfirmModal
                 isOpen={isRefreshKeyModalOpen}
-                handleClose={()=>setIsRefreshKeyModalOpen(false)}
+                handleClose={() => setIsRefreshKeyModalOpen(false)}
                 handleSubmit={refreshKeyPackage}
                 title="Aktualizovat veřejný klíč"
-                text="Pokud máte pochyby, zda nedošlo ke kompromitaci vašich veřejných klíčů, vygenerujte nové!"
+                text="Pokud máte pochyby, zda nedošlo ke kompromitaci vašeho veřejného klíče, vygenerujte nový!
+                Klíč bude použit pro každé nové členství ve skupinách."
                 confirmText="Vygenerovat"
                 successMessage="Klíče aktualizovány"
             />
@@ -223,6 +224,7 @@ const ResponsiveAppBar: FC = observer(function ResponsiveAppBar() {
                                     }}
                                 />
                                 <SpeedDialAction
+                                    sx={{background: theme.palette.warning.main}}
                                     key={'keyRefresh'}
                                     icon={<LockResetIcon/>}
                                     tooltipTitle={'Přegenerovat veřejný klíč'}
