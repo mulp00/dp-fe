@@ -14,6 +14,7 @@ export type EditGroupModalProps = {
     me: User
     handleAddUser: (member: MemberSnapshotIn, group: GroupSnapshotIn) => Promise<boolean>
     handleRemoveUser: (member: MemberSnapshotIn, group: GroupSnapshotIn) => Promise<boolean>
+    handleLeaveGroup: (group: GroupSnapshotIn) => Promise<boolean>
 };
 
 export const EditGroupModal = observer(function EditGroupModal(props: EditGroupModalProps) {
@@ -83,7 +84,7 @@ export const EditGroupModal = observer(function EditGroupModal(props: EditGroupM
                 params.value.email === props.group?.creator.email ?
                     <Button variant="outlined" disabled color="error">Zakázáno</Button> :
                     params.value.email === props.me.email ?
-                        <Button variant="outlined" color="error">Opustit</Button> :
+                        <Button variant="outlined" onClick={()=>props.handleLeaveGroup(props.group)} color="error">Opustit</Button> :
                         <Button variant="outlined" onClick={()=>props.handleRemoveUser(params.value, props.group)} color="error">Odebrat</Button>
             ),
         }

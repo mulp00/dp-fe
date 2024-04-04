@@ -30,12 +30,11 @@ import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
 import GroupAddIcon from '@mui/icons-material/GroupAdd';
 import {useDrawer} from "../context/DrawerContext";
 import __wbg_init, {Group as MlsGroup, Identity, KeyPackage, Provider, RatchetTree} from "../utils/crypto/openmls";
-import {applySnapshot, getSnapshot} from "mobx-state-tree";
-import {action, runInAction} from "mobx";
+import {applySnapshot} from "mobx-state-tree";
+import {runInAction} from "mobx";
 import {CreateGroupModal, EditGroupModal} from "../Components";
-import {createGroupDefaultModel, Group, GroupSnapshotIn} from "../models/MLS/GroupModel";
+import {GroupSnapshotIn} from "../models/MLS/GroupModel";
 import {MemberSnapshotIn} from "../models/User/MemberModel";
-import {GetCommitMessagesResponse, GetGroupsToJoin} from "../services/api";
 
 export const Home = observer(function Home() {
     const {userStore, groupStore} = useStores()
@@ -251,13 +250,14 @@ export const Home = observer(function Home() {
                     });
                 }
 
+
                 deserializedGroup.merge_pending_commit(provider)
 
                 try {
                     const updateSerializedUserGroupResponse = await apiService.updateSerializedUserGroup({
                         serializedUserGroupId: group.serializedUserGroupId,
                         serializedUserGroup: deserializedGroup.serialize(),
-                        epoch: group.epoch,
+                        epoch: group.lastEpoch,
                     });
                     groupStore.updateGroup(updateSerializedUserGroupResponse)
                 } catch (error) {
@@ -267,6 +267,11 @@ export const Home = observer(function Home() {
 
                 deserializedGroup.free()
             }
+            const keyStoreToUpdate = JSON.stringify({...JSON.parse(provider.serialize()), ...JSON.parse(userStore.me.keyStore)})
+            await apiService.updateKeyStore({keyStore: keyStoreToUpdate})
+            runInAction(() => {
+                userStore.me.setKeyStore(keyStoreToUpdate)
+            });
 
             provider.free()
         } catch (error) {
@@ -294,17 +299,8 @@ export const Home = observer(function Home() {
                 removedMemberIndex
             );
 
-            deserializedGroup.merge_pending_commit(provider)
-
-            const keyStoreToUpdate = JSON.stringify({...JSON.parse(provider.serialize()), ...JSON.parse(userStore.me.keyStore)})
-            await apiService.updateKeyStore({keyStore: keyStoreToUpdate})
-            runInAction(() => {
-                userStore.me.setKeyStore(keyStoreToUpdate)
-            });
-
-
             try {
-                await apiService.createCommitMessage({
+                await apiService.removeUser({
                     message: add_msg.commit.toString(),
                     groupId: group.groupId,
                     userId: member.id,
@@ -314,6 +310,14 @@ export const Home = observer(function Home() {
                 console.error("Failed to remove user", error);
                 return false;
             }
+
+            deserializedGroup.merge_pending_commit(provider)
+
+            const keyStoreToUpdate = JSON.stringify({...JSON.parse(provider.serialize()), ...JSON.parse(userStore.me.keyStore)})
+            await apiService.updateKeyStore({keyStore: keyStoreToUpdate})
+            runInAction(() => {
+                userStore.me.setKeyStore(keyStoreToUpdate)
+            });
 
             let updateSerializedUserGroupResponse;
             try {
@@ -341,29 +345,62 @@ export const Home = observer(function Home() {
             return false;
         }
     }
+    const leaveGroup = async (group: GroupSnapshotIn) => {
+        try {
+            const provider = Provider.deserialize(userStore.me.keyStore);
+            const identity = Identity.deserialize(provider, userStore.me.serializedIdentity);
+
+            const deserializedGroup = MlsGroup.deserialize(group.serializedGroup);
+
+            const leave_msg = deserializedGroup.leave(
+                provider,
+                identity
+            );
+
+            try {
+                await apiService.leaveGroup({
+                    message: leave_msg.commit.toString(),
+                    groupId: group.groupId,
+                    epoch: group.epoch
+                });
+            } catch (error) {
+                console.error("Failed to leave group", error);
+                return false;
+            }
+
+            deserializedGroup.merge_pending_commit(provider)
+
+            const keyStoreToUpdate = JSON.stringify({...JSON.parse(provider.serialize()), ...JSON.parse(userStore.me.keyStore)})
+            await apiService.updateKeyStore({keyStore: keyStoreToUpdate})
+            runInAction(() => {
+                userStore.me.setKeyStore(keyStoreToUpdate)
+            });
+
+            groupStore.removeGroup(group)
+
+            setIsEditGroupModalOpen(false)
+
+            provider.free();
+            identity.free();
+            deserializedGroup.free();
+
+            return true;
+        } catch (error) {
+            console.error("Unexpected error while removing user ", error);
+            return false;
+        }
+    }
 
     useEffect(() => {
-        console.log(userStore.me.keyStore)
-
         const initializeWasm = async () => {
             await __wbg_init();
         }
         if (!isWasmInitialized) {
             initializeWasm().then(async () => {
-                const provider = Provider.deserialize(userStore.me.keyStore);
-
                 if (!initialLoadDone) {
                     await joinGroups();
                     await loadGroups();
                     await catchUpOnEpoch();
-                    groupStore.groups.forEach((group) => {
-                        const deserializedgroup = MlsGroup.deserialize(group.serializedGroup)
-                        console.log(deserializedgroup.export_key(provider, 'exported', new Uint8Array(32).fill(0x30),
-                            32)
-                        )
-                        deserializedgroup.free()
-                        console.log(group.lastEpoch)
-                    })
                     setInitialLoadDone(true);
                 }
             });
@@ -490,6 +527,7 @@ export const Home = observer(function Home() {
                 me={userStore.me}
                 handleAddUser={addUser}
                 handleRemoveUser={removeUser}
+                handleLeaveGroup={leaveGroup}
             />
             <Box
                 sx={{

@@ -24,6 +24,17 @@ export const GroupStoreModel = types
             }
             return self.groups[groupIndex]
         },
+        removeGroup(group: GroupSnapshotIn){
+            try{
+                const groupIndex = self.groups.findIndex(g => g.groupId === group.groupId);
+                if (groupIndex !== -1) {
+                    self.groups.remove(self.groups[groupIndex])
+                }
+            }catch {
+                return false
+            }
+            return true
+        }
     })) // eslint-disable-line @typescript-eslint/no-unused-vars
 
 export interface GroupStore extends Instance<typeof GroupStoreModel> {

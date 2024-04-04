@@ -370,14 +370,14 @@ function handleError(f, args) {
         wasm.__wbindgen_exn_store(addHeapObject(e));
     }
 }
-function __wbg_adapter_121(arg0, arg1, arg2, arg3, arg4) {
+function __wbg_adapter_123(arg0, arg1, arg2, arg3, arg4) {
     _assertNum(arg0);
     _assertNum(arg1);
     _assertNum(arg3);
     wasm.wasm_bindgen__convert__closures__invoke3_mut__h367e4c38e8f2a4ce(arg0, arg1, addHeapObject(arg2), arg3, addHeapObject(arg4));
 }
 
-function __wbg_adapter_136(arg0, arg1, arg2, arg3) {
+function __wbg_adapter_138(arg0, arg1, arg2, arg3) {
     _assertNum(arg0);
     _assertNum(arg1);
     wasm.wasm_bindgen__convert__closures__invoke2_mut__hf798eaf28bc95219(arg0, arg1, addHeapObject(arg2), addHeapObject(arg3));
@@ -591,6 +591,36 @@ export class Group {
                 throw takeObject(r1);
             }
             return RemoveMessages.__wrap(r0);
+        } finally {
+            wasm.__wbindgen_add_to_stack_pointer(16);
+        }
+    }
+    /**
+    * @param {Provider} provider
+    * @param {Identity} sender
+    * @returns {LeaveMessage}
+    */
+    leave(provider, sender) {
+        try {
+            if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
+            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+            _assertNum(this.__wbg_ptr);
+            _assertClass(provider, Provider);
+            if (provider.__wbg_ptr === 0) {
+                throw new Error('Attempt to use a moved value');
+            }
+            _assertClass(sender, Identity);
+            if (sender.__wbg_ptr === 0) {
+                throw new Error('Attempt to use a moved value');
+            }
+            wasm.group_leave(retptr, this.__wbg_ptr, provider.__wbg_ptr, sender.__wbg_ptr);
+            var r0 = getInt32Memory0()[retptr / 4 + 0];
+            var r1 = getInt32Memory0()[retptr / 4 + 1];
+            var r2 = getInt32Memory0()[retptr / 4 + 2];
+            if (r2) {
+                throw takeObject(r1);
+            }
+            return LeaveMessage.__wrap(r0);
         } finally {
             wasm.__wbindgen_add_to_stack_pointer(16);
         }
@@ -1025,6 +1055,47 @@ export class LeafNodeIndex {
     free() {
         const ptr = this.__destroy_into_raw();
         wasm.__wbg_leafnodeindex_free(ptr);
+    }
+}
+
+const LeaveMessageFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_leavemessage_free(ptr >>> 0));
+/**
+*/
+export class LeaveMessage {
+
+    constructor() {
+        throw new Error('cannot invoke `new` directly');
+    }
+
+    static __wrap(ptr) {
+        ptr = ptr >>> 0;
+        const obj = Object.create(LeaveMessage.prototype);
+        obj.__wbg_ptr = ptr;
+        LeaveMessageFinalization.register(obj, obj.__wbg_ptr, obj);
+        return obj;
+    }
+
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        LeaveMessageFinalization.unregister(this);
+        return ptr;
+    }
+
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_leavemessage_free(ptr);
+    }
+    /**
+    * @returns {Uint8Array}
+    */
+    get commit() {
+        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
+        _assertNum(this.__wbg_ptr);
+        const ret = wasm.leavemessage_commit(this.__wbg_ptr);
+        return takeObject(ret);
     }
 }
 
@@ -1552,7 +1623,7 @@ function __wbg_get_imports() {
                 const a = state0.a;
                 state0.a = 0;
                 try {
-                    return __wbg_adapter_121(a, state0.b, arg0, arg1, arg2);
+                    return __wbg_adapter_123(a, state0.b, arg0, arg1, arg2);
                 } finally {
                     state0.a = a;
                 }
@@ -1593,7 +1664,7 @@ function __wbg_get_imports() {
                 const a = state0.a;
                 state0.a = 0;
                 try {
-                    return __wbg_adapter_136(a, state0.b, arg0, arg1);
+                    return __wbg_adapter_138(a, state0.b, arg0, arg1);
                 } finally {
                     state0.a = a;
                 }
@@ -1673,8 +1744,8 @@ function __wbg_get_imports() {
         const ret = wasm.memory;
         return addHeapObject(ret);
     };
-    imports.wbg.__wbindgen_closure_wrapper15065 = function() { return logError(function (arg0, arg1, arg2) {
-        const ret = makeMutClosure(arg0, arg1, 919, __wbg_adapter_30);
+    imports.wbg.__wbindgen_closure_wrapper15123 = function() { return logError(function (arg0, arg1, arg2) {
+        const ret = makeMutClosure(arg0, arg1, 920, __wbg_adapter_30);
         return addHeapObject(ret);
     }, arguments) };
 

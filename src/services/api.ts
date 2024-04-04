@@ -130,10 +130,16 @@ export interface PatchKeyStore{
     keyStore: string;
 }
 
-export interface CommitMessagePayload{
+export interface RemoveUserPayload {
     message: string;
     groupId: string;
     userId: string;
+    epoch: number;
+}
+
+export interface LeaveGroupPayload{
+    message: string;
+    groupId: string;
     epoch: number;
 }
 
@@ -249,8 +255,15 @@ class ApiService {
             }
         }).then(response => response.data);
     }
-    public async createCommitMessage(payload: CommitMessagePayload): Promise<string> {
-        return this.axiosInstance.post<string>('/commitMessage', payload, {
+    public async removeUser(payload: RemoveUserPayload): Promise<string> {
+        return this.axiosInstance.post<string>('/removeUser', payload, {
+            headers: {
+                "Content-type": "application/ld+json"
+            }
+        }).then(response => response.data);
+    }
+    public async leaveGroup(payload: LeaveGroupPayload): Promise<string> {
+        return this.axiosInstance.post<string>('/leaveGroup', payload, {
             headers: {
                 "Content-type": "application/ld+json"
             }

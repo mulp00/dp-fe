@@ -83,6 +83,12 @@ export class Group {
 /**
 * @param {Provider} provider
 * @param {Identity} sender
+* @returns {LeaveMessage}
+*/
+  leave(provider: Provider, sender: Identity): LeaveMessage;
+/**
+* @param {Provider} provider
+* @param {Identity} sender
 * @returns {RemoveMessages}
 */
   update_key_package(provider: Provider, sender: Identity): RemoveMessages;
@@ -162,6 +168,14 @@ export class KeyPackage {
 */
 export class LeafNodeIndex {
   free(): void;
+}
+/**
+*/
+export class LeaveMessage {
+  free(): void;
+/**
+*/
+  readonly commit: Uint8Array;
 }
 /**
 */
@@ -266,15 +280,18 @@ export interface InitOutput {
   readonly __wbg_group_free: (a: number) => void;
   readonly __wbg_addmessages_free: (a: number) => void;
   readonly __wbg_removemessages_free: (a: number) => void;
+  readonly __wbg_leavemessage_free: (a: number) => void;
   readonly addmessages_commit: (a: number) => number;
   readonly addmessages_welcome: (a: number) => number;
   readonly removemessages_commit: (a: number) => number;
   readonly removemessages_welcome: (a: number) => number;
+  readonly leavemessage_commit: (a: number) => number;
   readonly group_create_new: (a: number, b: number, c: number, d: number) => number;
   readonly group_join: (a: number, b: number, c: number, d: number, e: number) => void;
   readonly group_export_ratchet_tree: (a: number) => number;
   readonly group_add_member: (a: number, b: number, c: number, d: number, e: number) => void;
   readonly group_remove_member: (a: number, b: number, c: number, d: number, e: number) => void;
+  readonly group_leave: (a: number, b: number, c: number, d: number) => void;
   readonly group_update_key_package: (a: number, b: number, c: number, d: number) => void;
   readonly group_merge_pending_commit: (a: number, b: number, c: number) => void;
   readonly group_process_message: (a: number, b: number, c: number, d: number, e: number) => void;
