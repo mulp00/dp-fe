@@ -126,8 +126,11 @@ export interface GetCommitMessagesResponse {
     ]
 }
 
-export interface PatchKeyStore{
+export interface PatchKeyStorePayload {
     keyStore: string;
+}
+export interface PatchKeyPackagePayload {
+    keyPackage: string;
 }
 
 export interface RemoveUserPayload {
@@ -285,8 +288,16 @@ class ApiService {
             }
         }).then(response => response.data);
     }
-    public async updateKeyStore(payload: PatchKeyStore): Promise<string> {
+    public async updateKeyStore(payload: PatchKeyStorePayload): Promise<string> {
         return this.axiosInstance.patch<string>('/updateKeyStore', payload, {
+            headers: {
+                "Content-type": "application/merge-patch+json"
+            }
+        }).then(response => response.data);
+    }
+
+    public async updateKeyPackage(payload: PatchKeyPackagePayload): Promise<string> {
+        return this.axiosInstance.patch<string>('/updateKeyPackage', payload, {
             headers: {
                 "Content-type": "application/merge-patch+json"
             }

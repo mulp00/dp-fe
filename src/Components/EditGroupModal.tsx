@@ -6,6 +6,8 @@ import {User} from "../models/User/UserModel";
 import {DataGrid, GridColDef, GridRenderCellParams} from "@mui/x-data-grid";
 import {useApiService} from "../hooks";
 import {Member, MemberSnapshotIn} from "../models/User/MemberModel";
+import LockResetIcon from '@mui/icons-material/LockReset';
+import {ConfirmModal} from "./ConfirmModal";
 
 export type EditGroupModalProps = {
     isOpen: boolean;
@@ -22,6 +24,9 @@ export const EditGroupModal = observer(function EditGroupModal(props: EditGroupM
 
     const [foundUsers, setFoundUsers] = useState<MemberSnapshotIn[] | undefined>()
     const [selectedUser, setSelectedUser] = useState<MemberSnapshotIn | null>(null);
+
+    const [isRefreshKeyModalOpen, setIsRefreshKeyModalOpen] = useState<boolean>(false)
+
     const findUsers = async (event: React.SyntheticEvent<Element, Event>, value: string) => {
         if (value.trim()) {
             const users = await apiService.getUsersByEmail({email: value})
@@ -101,36 +106,52 @@ export const EditGroupModal = observer(function EditGroupModal(props: EditGroupM
             open={props.isOpen}
             onClose={closeModal}
         >
-            <Box sx={style}>
-                <Typography id="modal-modal-title" variant="h6" component="h2">
-                    Editovat skupinu
-                </Typography>
-                <Stack spacing={2} direction="row" paddingY={5}>
-                    <Autocomplete
-                        disablePortal
-                        options={memoizedFoundUsers}
-                        getOptionLabel={(option) => option.email || ""}
-                        noOptionsText={"Zadejte email uživatele"}
-                        onInputChange={findUsers}
-                        onChange={(event, value: MemberSnapshotIn | null) => setSelectedUser(value)}
-                        value={selectedUser}
-                        isOptionEqualToValue={(option, value) => option.email === value.email}
-                        sx={{width: 300}}
-                        renderInput={(params) => <TextField {...params} label="Vyhledat uživate"/>}
-                    />
-                    <Button variant="contained" onClick={handleAddButtonClick}>Přidat</Button>
-                </Stack>
-                <Box style={{height: 400, width: '100%'}}>
-                    <DataGrid
-                        disableColumnSelector
-                        rows={rows}
-                        columns={columns}
-                    />
+            <>
+                <ConfirmModal
+                    isOpen={isRefreshKeyModalOpen}
+                    handleClose={() => setIsRefreshKeyModalOpen(false)}
+                    handleSubmit={() => console.log('tst')} // TODO implementovat funkci na přegenerovani klice
+                    title="Aktualizovat skupinový klíč"
+                    text="Pokud máte pochyby, zda nedošlo ke kompromitaci skupiný nebo vašeho klíče ve skupině, vygenerujte nový!"
+                    confirmText="Vygenerovat"
+                    successMessage="Klíč aktualizován"
+                />
+                <Box sx={style}>
+                    <Typography id="modal-modal-title" variant="h6" component="h2">
+                        Editovat skupinu
+                    </Typography>
+                    <Stack spacing={2} direction="row" paddingY={5}>
+                        <Autocomplete
+                            disablePortal
+                            options={memoizedFoundUsers}
+                            getOptionLabel={(option) => option.email || ""}
+                            noOptionsText={"Zadejte email uživatele"}
+                            onInputChange={findUsers}
+                            onChange={(event, value: MemberSnapshotIn | null) => setSelectedUser(value)}
+                            value={selectedUser}
+                            isOptionEqualToValue={(option, value) => option.email === value.email}
+                            sx={{width: 300}}
+                            renderInput={(params) => <TextField {...params} label="Vyhledat uživate"/>}
+                        />
+                        <Button variant="contained" onClick={handleAddButtonClick}>Přidat</Button>
+                    </Stack>
+                    <Box style={{height: 400, width: '100%'}}>
+                        <DataGrid
+                            disableColumnSelector
+                            rows={rows}
+                            columns={columns}
+                        />
+                    </Box>
+
+                    <Box display="flex" justifyContent="space-between" mt={2}>
+                        <Button variant="outlined" onClick={closeModal}>Zrušit</Button>
+                        <Button variant="outlined" startIcon={<LockResetIcon/>} onClick={()=>setIsRefreshKeyModalOpen(true)}>
+                            Přegenerovat skupinový klíč
+                        </Button>
+                    </Box>
+
                 </Box>
-                <Box display="flex" justifyContent="space-between" mt={2}>
-                    <Button variant="outlined" onClick={closeModal}>Zrušit</Button>
-                </Box>
-            </Box>
+            </>
         </Modal>
     );
 });

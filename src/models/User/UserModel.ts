@@ -21,6 +21,9 @@ export const UserModel = types
         },
         setKeyStore(keyStore: string){
             self.keyStore = keyStore
+        },
+        setKeyPackage(keyPackage: string){
+            self.keyPackage = keyPackage
         }
     })) // eslint-disable-line @typescript-eslint/no-unused-vars
 
