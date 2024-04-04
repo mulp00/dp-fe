@@ -146,6 +146,12 @@ export interface LeaveGroupPayload{
     epoch: number;
 }
 
+export interface CreateGeneralCommitMessagePayload {
+    message: string;
+    groupId: string;
+    epoch: number;
+}
+
 class ApiService {
     private axiosInstance: AxiosInstance;
 
@@ -322,6 +328,13 @@ class ApiService {
 
     public async getCommitMessages(payload: GetCommitMessagesPayload): Promise<GetCommitMessagesResponse> {
         return this.axiosInstance.post<GetCommitMessagesResponse>(`/getCommitMessages`, payload, {
+            headers: {
+                "Content-type": "application/ld+json"
+            }
+        }).then(response => response.data);
+    }
+    public async postGeneralCommitMessage(payload: CreateGeneralCommitMessagePayload): Promise<string> {
+        return this.axiosInstance.post<string>(`/createGeneralCommitMessage`, payload, {
             headers: {
                 "Content-type": "application/ld+json"
             }

@@ -370,14 +370,14 @@ function handleError(f, args) {
         wasm.__wbindgen_exn_store(addHeapObject(e));
     }
 }
-function __wbg_adapter_123(arg0, arg1, arg2, arg3, arg4) {
+function __wbg_adapter_125(arg0, arg1, arg2, arg3, arg4) {
     _assertNum(arg0);
     _assertNum(arg1);
     _assertNum(arg3);
     wasm.wasm_bindgen__convert__closures__invoke3_mut__h367e4c38e8f2a4ce(arg0, arg1, addHeapObject(arg2), arg3, addHeapObject(arg4));
 }
 
-function __wbg_adapter_138(arg0, arg1, arg2, arg3) {
+function __wbg_adapter_140(arg0, arg1, arg2, arg3) {
     _assertNum(arg0);
     _assertNum(arg1);
     wasm.wasm_bindgen__convert__closures__invoke2_mut__hf798eaf28bc95219(arg0, arg1, addHeapObject(arg2), addHeapObject(arg3));
@@ -628,7 +628,7 @@ export class Group {
     /**
     * @param {Provider} provider
     * @param {Identity} sender
-    * @returns {RemoveMessages}
+    * @returns {UpdateKeyPackageMessage}
     */
     update_key_package(provider, sender) {
         try {
@@ -650,7 +650,7 @@ export class Group {
             if (r2) {
                 throw takeObject(r1);
             }
-            return RemoveMessages.__wrap(r0);
+            return UpdateKeyPackageMessage.__wrap(r0);
         } finally {
             wasm.__wbindgen_add_to_stack_pointer(16);
         }
@@ -1340,6 +1340,56 @@ export class RemoveMessages {
     }
 }
 
+const UpdateKeyPackageMessageFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_updatekeypackagemessage_free(ptr >>> 0));
+/**
+*/
+export class UpdateKeyPackageMessage {
+
+    constructor() {
+        throw new Error('cannot invoke `new` directly');
+    }
+
+    static __wrap(ptr) {
+        ptr = ptr >>> 0;
+        const obj = Object.create(UpdateKeyPackageMessage.prototype);
+        obj.__wbg_ptr = ptr;
+        UpdateKeyPackageMessageFinalization.register(obj, obj.__wbg_ptr, obj);
+        return obj;
+    }
+
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        UpdateKeyPackageMessageFinalization.unregister(this);
+        return ptr;
+    }
+
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_updatekeypackagemessage_free(ptr);
+    }
+    /**
+    * @returns {Uint8Array}
+    */
+    get commit() {
+        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
+        _assertNum(this.__wbg_ptr);
+        const ret = wasm.updatekeypackagemessage_commit(this.__wbg_ptr);
+        return takeObject(ret);
+    }
+    /**
+    * @returns {Uint8Array | undefined}
+    */
+    get welcome() {
+        if (this.__wbg_ptr == 0) throw new Error('Attempt to use a moved value');
+        _assertNum(this.__wbg_ptr);
+        const ret = wasm.updatekeypackagemessage_welcome(this.__wbg_ptr);
+        return takeObject(ret);
+    }
+}
+
 const WasmBindgenTestContextFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_wasmbindgentestcontext_free(ptr >>> 0));
@@ -1623,7 +1673,7 @@ function __wbg_get_imports() {
                 const a = state0.a;
                 state0.a = 0;
                 try {
-                    return __wbg_adapter_123(a, state0.b, arg0, arg1, arg2);
+                    return __wbg_adapter_125(a, state0.b, arg0, arg1, arg2);
                 } finally {
                     state0.a = a;
                 }
@@ -1664,7 +1714,7 @@ function __wbg_get_imports() {
                 const a = state0.a;
                 state0.a = 0;
                 try {
-                    return __wbg_adapter_138(a, state0.b, arg0, arg1);
+                    return __wbg_adapter_140(a, state0.b, arg0, arg1);
                 } finally {
                     state0.a = a;
                 }
@@ -1744,7 +1794,7 @@ function __wbg_get_imports() {
         const ret = wasm.memory;
         return addHeapObject(ret);
     };
-    imports.wbg.__wbindgen_closure_wrapper15123 = function() { return logError(function (arg0, arg1, arg2) {
+    imports.wbg.__wbindgen_closure_wrapper15152 = function() { return logError(function (arg0, arg1, arg2) {
         const ret = makeMutClosure(arg0, arg1, 920, __wbg_adapter_30);
         return addHeapObject(ret);
     }, arguments) };

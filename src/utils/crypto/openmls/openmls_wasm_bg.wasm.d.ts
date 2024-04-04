@@ -15,11 +15,14 @@ export function identity_deserialize(a: number, b: number, c: number, d: number)
 export function __wbg_group_free(a: number): void;
 export function __wbg_addmessages_free(a: number): void;
 export function __wbg_removemessages_free(a: number): void;
+export function __wbg_updatekeypackagemessage_free(a: number): void;
 export function __wbg_leavemessage_free(a: number): void;
 export function addmessages_commit(a: number): number;
 export function addmessages_welcome(a: number): number;
 export function removemessages_commit(a: number): number;
 export function removemessages_welcome(a: number): number;
+export function updatekeypackagemessage_commit(a: number): number;
+export function updatekeypackagemessage_welcome(a: number): number;
 export function leavemessage_commit(a: number): number;
 export function group_create_new(a: number, b: number, c: number, d: number): number;
 export function group_join(a: number, b: number, c: number, d: number, e: number): void;

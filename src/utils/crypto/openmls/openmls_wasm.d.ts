@@ -89,9 +89,9 @@ export class Group {
 /**
 * @param {Provider} provider
 * @param {Identity} sender
-* @returns {RemoveMessages}
+* @returns {UpdateKeyPackageMessage}
 */
-  update_key_package(provider: Provider, sender: Identity): RemoveMessages;
+  update_key_package(provider: Provider, sender: Identity): UpdateKeyPackageMessage;
 /**
 * @param {Provider} provider
 */
@@ -225,6 +225,17 @@ export class RemoveMessages {
   readonly welcome: Uint8Array | undefined;
 }
 /**
+*/
+export class UpdateKeyPackageMessage {
+  free(): void;
+/**
+*/
+  readonly commit: Uint8Array;
+/**
+*/
+  readonly welcome: Uint8Array | undefined;
+}
+/**
 * Runtime test harness support instantiated in JS.
 *
 * The node.js entry script instantiates a `Context` here which is used to
@@ -280,11 +291,14 @@ export interface InitOutput {
   readonly __wbg_group_free: (a: number) => void;
   readonly __wbg_addmessages_free: (a: number) => void;
   readonly __wbg_removemessages_free: (a: number) => void;
+  readonly __wbg_updatekeypackagemessage_free: (a: number) => void;
   readonly __wbg_leavemessage_free: (a: number) => void;
   readonly addmessages_commit: (a: number) => number;
   readonly addmessages_welcome: (a: number) => number;
   readonly removemessages_commit: (a: number) => number;
   readonly removemessages_welcome: (a: number) => number;
+  readonly updatekeypackagemessage_commit: (a: number) => number;
+  readonly updatekeypackagemessage_welcome: (a: number) => number;
   readonly leavemessage_commit: (a: number) => number;
   readonly group_create_new: (a: number, b: number, c: number, d: number) => number;
   readonly group_join: (a: number, b: number, c: number, d: number, e: number) => void;

@@ -8,6 +8,9 @@ import {useApiService} from "../hooks";
 import {Member, MemberSnapshotIn} from "../models/User/MemberModel";
 import LockResetIcon from '@mui/icons-material/LockReset';
 import {ConfirmModal} from "./ConfirmModal";
+import {Group as MlsGroup, Identity, Provider} from "../utils/crypto/openmls";
+import {useStores} from "../models/helpers/useStores";
+import {runInAction} from "mobx";
 
 export type EditGroupModalProps = {
     isOpen: boolean;
@@ -22,6 +25,8 @@ export type EditGroupModalProps = {
 export const EditGroupModal = observer(function EditGroupModal(props: EditGroupModalProps) {
     const apiService = useApiService()
 
+    const {userStore, groupStore} = useStores()
+
     const [foundUsers, setFoundUsers] = useState<MemberSnapshotIn[] | undefined>()
     const [selectedUser, setSelectedUser] = useState<MemberSnapshotIn | null>(null);
 
@@ -34,7 +39,8 @@ export const EditGroupModal = observer(function EditGroupModal(props: EditGroupM
                 !props.group.users?.some(groupUser => groupUser.email === user.email)
             );
 
-            setFoundUsers(filteredUsers);        }
+            setFoundUsers(filteredUsers);
+        }
     }
 
     const memoizedFoundUsers = useMemo(() => {
@@ -55,6 +61,54 @@ export const EditGroupModal = observer(function EditGroupModal(props: EditGroupM
             setSelectedUser(null)
         }, 300); // Delay to allow modal close animation
     };
+
+    const rotateGroupKey = async () => {
+        try {
+            const provider = Provider.deserialize(userStore.me.keyStore)
+            const identity = Identity.deserialize(provider, userStore.me.serializedIdentity);
+
+            const deserializedGroup = MlsGroup.deserialize(props.group.serializedGroup);
+
+            const updateKeyMessage = deserializedGroup.update_key_package(provider, identity)
+
+            try {
+                await apiService.postGeneralCommitMessage({
+                    groupId: props.group.groupId,
+                    message: updateKeyMessage.commit.toString(),
+                    epoch: props.group.epoch
+                })
+            } catch (error) {
+                console.error("Failed to leave group", error);
+                return false;
+            }
+
+            deserializedGroup.merge_pending_commit(provider)
+
+            const keyStoreToUpdate = JSON.stringify({...JSON.parse(provider.serialize()), ...JSON.parse(userStore.me.keyStore)})
+            await apiService.updateKeyStore({keyStore: keyStoreToUpdate})
+            runInAction(() => {
+                userStore.me.setKeyStore(keyStoreToUpdate)
+            });
+
+            let updateSerializedUserGroupResponse;
+            try {
+                updateSerializedUserGroupResponse = await apiService.updateSerializedUserGroup({
+                    serializedUserGroupId: props.group.serializedUserGroupId,
+                    serializedUserGroup: deserializedGroup.serialize(),
+                    epoch: props.group.epoch + 1,
+                });
+            } catch (error) {
+                console.error("Failed to update serialized user group", error);
+                return false;
+            }
+
+            groupStore.updateGroup(updateSerializedUserGroupResponse);
+            return true
+        } catch (error) {
+            console.error("Unexpected error while removing user ", error);
+            return false;
+        }
+    }
 
 
     const style = {
@@ -89,8 +143,10 @@ export const EditGroupModal = observer(function EditGroupModal(props: EditGroupM
                 params.value.email === props.group?.creator.email ?
                     <Button variant="outlined" disabled color="error">Zakázáno</Button> :
                     params.value.email === props.me.email ?
-                        <Button variant="outlined" onClick={()=>props.handleLeaveGroup(props.group)} color="error">Opustit</Button> :
-                        <Button variant="outlined" onClick={()=>props.handleRemoveUser(params.value, props.group)} color="error">Odebrat</Button>
+                        <Button variant="outlined" onClick={() => props.handleLeaveGroup(props.group)}
+                                color="error">Opustit</Button> :
+                        <Button variant="outlined" onClick={() => props.handleRemoveUser(params.value, props.group)}
+                                color="error">Odebrat</Button>
             ),
         }
     ];
@@ -110,7 +166,7 @@ export const EditGroupModal = observer(function EditGroupModal(props: EditGroupM
                 <ConfirmModal
                     isOpen={isRefreshKeyModalOpen}
                     handleClose={() => setIsRefreshKeyModalOpen(false)}
-                    handleSubmit={() => console.log('tst')} // TODO implementovat funkci na přegenerovani klice
+                    handleSubmit={() => rotateGroupKey()} // TODO implementovat funkci na přegenerovani klice
                     title="Aktualizovat skupinový klíč"
                     text="Pokud máte pochyby, zda nedošlo ke kompromitaci skupiný nebo vašeho klíče ve skupině, vygenerujte nový!"
                     confirmText="Vygenerovat"
@@ -145,7 +201,8 @@ export const EditGroupModal = observer(function EditGroupModal(props: EditGroupM
 
                     <Box display="flex" justifyContent="space-between" mt={2}>
                         <Button variant="outlined" onClick={closeModal}>Zrušit</Button>
-                        <Button variant="outlined" startIcon={<LockResetIcon/>} onClick={()=>setIsRefreshKeyModalOpen(true)}>
+                        <Button variant="outlined" startIcon={<LockResetIcon/>}
+                                onClick={() => setIsRefreshKeyModalOpen(true)}>
                             Přegenerovat skupinový klíč
                         </Button>
                     </Box>
