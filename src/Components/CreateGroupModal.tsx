@@ -11,14 +11,28 @@ export type CreateGroupModalProps = {
 export const CreateGroupModal = observer(function CreateGroupModal(props: CreateGroupModalProps) {
     const [state, setState] = useState<"ready" | "loading" | "success" | "error">("ready");
     const [groupName, setGroupName] = useState("");
+    const [groupNameError, setGroupNameError] = useState("");
     const [message, setMessage] = useState("");
+
+    const validateGroupName = (name: string) => {
+        if (name.length >= 4) {
+            setGroupNameError("");
+            return true;
+        } else {
+            setGroupNameError("Název skupiny musí být alespoň 4 znaky dlouhý.");
+            return false;
+        }
+    };
+
 
     const handleFormSubmit = async () => {
         if (!props.handleSubmit) {
             console.error("handleSubmit function is not provided");
             return;
         }
-        setState("loading");
+        if (!validateGroupName(groupName)) {
+            return;
+        }
         try {
             await props.handleSubmit(groupName);
             setState("success");
@@ -36,6 +50,7 @@ export const CreateGroupModal = observer(function CreateGroupModal(props: Create
                 setState("ready");
                 setMessage("");
                 setGroupName("");
+                setGroupNameError("");
             }, 300);
         }
     };
@@ -70,8 +85,13 @@ export const CreateGroupModal = observer(function CreateGroupModal(props: Create
                             id="outlined-required"
                             label="Název"
                             value={groupName}
-                            onChange={(e) => setGroupName(e.target.value)}
+                            onChange={(e) => {
+                                setGroupName(e.target.value);
+                                validateGroupName(e.target.value); // Validate on change
+                            }}
                             margin="normal"
+                            error={!!groupNameError}
+                            helperText={groupNameError}
                         />
                         <Box display="flex" justifyContent="space-between" mt={2}>
                             <Button variant="outlined" onClick={closeModal}>Zrušit</Button>

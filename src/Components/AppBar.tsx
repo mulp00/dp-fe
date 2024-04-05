@@ -66,25 +66,16 @@ const ResponsiveAppBar: FC = observer(function ResponsiveAppBar() {
 
 
         const newKeyPackage = identity.key_package(provider)
-        try {
-            await apiService.updateKeyPackage({keyPackage: newKeyPackage.serialize()})
-            runInAction(() => {
-                userStore.me.setKeyStore(keyStoreToUpdate)
-            });
-        } catch (error) {
-            console.error("Failed to update keyPackage", error);
-            return false;
-        }
 
-        try {
-            await apiService.updateKeyStore({keyStore: keyStoreToUpdate})
-            runInAction(() => {
-                userStore.me.setKeyStore(keyStoreToUpdate)
-            });
-        } catch (error) {
-            console.error("Failed to update keyStore", error);
-            return false;
-        }
+        await apiService.updateKeyPackage({keyPackage: newKeyPackage.serialize()})
+        runInAction(() => {
+            userStore.me.setKeyStore(keyStoreToUpdate)
+        });
+
+        await apiService.updateKeyStore({keyStore: keyStoreToUpdate})
+        runInAction(() => {
+            userStore.me.setKeyStore(keyStoreToUpdate)
+        });
 
         newKeyPackage.free()
         provider.free();

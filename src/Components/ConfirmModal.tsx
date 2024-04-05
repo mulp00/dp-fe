@@ -79,10 +79,18 @@ export const ConfirmModal = observer(function ConfirmModal(props: ConfirmModalPr
                     <CircularProgress/>
                 </Box>
             )}
-            {(state === "success" || state === "error") && (
+            {(state === "success") && (
                 <Box textAlign="center">
                     <Typography variant="body1" sx={{mb: 2}}>
                         {message}
+                    </Typography>
+                    <Button variant="contained" onClick={handleClose}>Zavřít</Button>
+                </Box>
+            )}
+            {(state === "error") && (
+                <Box textAlign="center">
+                    <Typography variant="body1" sx={{mb: 2}}>
+                        Něco se pokazilo
                     </Typography>
                     <Button variant="contained" onClick={handleClose}>Zavřít</Button>
                 </Box>

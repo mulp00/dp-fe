@@ -352,49 +352,39 @@ export const Home = observer(function Home() {
         }
     }
     const leaveGroup = async (group: GroupSnapshotIn) => {
-        try {
-            const provider = Provider.deserialize(userStore.me.keyStore);
-            const identity = Identity.deserialize(provider, userStore.me.serializedIdentity);
+        const provider = Provider.deserialize(userStore.me.keyStore);
+        const identity = Identity.deserialize(provider, userStore.me.serializedIdentity);
 
-            const deserializedGroup = MlsGroup.deserialize(group.serializedGroup);
+        const deserializedGroup = MlsGroup.deserialize(group.serializedGroup);
 
-            const leave_msg = deserializedGroup.leave(
-                provider,
-                identity
-            );
+        const leave_msg = deserializedGroup.leave(
+            provider,
+            identity
+        );
 
-            try {
-                await apiService.leaveGroup({
-                    message: leave_msg.commit.toString(),
-                    groupId: group.groupId,
-                    epoch: group.epoch
-                });
-            } catch (error) {
-                console.error("Failed to leave group", error);
-                return false;
-            }
+        await apiService.leaveGroup({
+            message: leave_msg.commit.toString(),
+            groupId: group.groupId,
+            epoch: group.epoch
+        });
 
-            deserializedGroup.merge_pending_commit(provider)
+        deserializedGroup.merge_pending_commit(provider)
 
-            const keyStoreToUpdate = JSON.stringify({...JSON.parse(provider.serialize()), ...JSON.parse(userStore.me.keyStore)})
-            await apiService.updateKeyStore({keyStore: keyStoreToUpdate})
-            runInAction(() => {
-                userStore.me.setKeyStore(keyStoreToUpdate)
-            });
+        const keyStoreToUpdate = JSON.stringify({...JSON.parse(provider.serialize()), ...JSON.parse(userStore.me.keyStore)})
+        await apiService.updateKeyStore({keyStore: keyStoreToUpdate})
+        runInAction(() => {
+            userStore.me.setKeyStore(keyStoreToUpdate)
+        });
 
-            groupStore.removeGroup(group)
+        groupStore.removeGroup(group)
 
-            setIsEditGroupModalOpen(false)
+        setIsEditGroupModalOpen(false)
 
-            provider.free();
-            identity.free();
-            deserializedGroup.free();
+        provider.free();
+        identity.free();
+        deserializedGroup.free();
 
-            return true;
-        } catch (error) {
-            console.error("Unexpected error while removing user ", error);
-            return false;
-        }
+        return true;
     }
 
     useEffect(() => {
