@@ -1,7 +1,7 @@
 import React, {useMemo, useState} from 'react';
 import {observer} from "mobx-react";
 import {Autocomplete, Box, Button, Modal, Stack, TextField, Typography} from "@mui/material";
-import {GroupSnapshotIn} from "../models/MLS/GroupModel";
+import {GroupSnapshotIn} from "../models/Group/GroupModel";
 import {User} from "../models/User/UserModel";
 import {DataGrid, GridColDef, GridRenderCellParams} from "@mui/x-data-grid";
 import {useApiService} from "../hooks";

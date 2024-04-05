@@ -211,6 +211,7 @@ const ResponsiveAppBar: FC = observer(function ResponsiveAppBar() {
                                     onClick={() => {
                                         clear(); //  authStore's method to clear the session
                                         storageClear(); // Clearing storage
+                                        apiService.removeAuthToken()
                                         navigate('/login'); // Redirecting to login page
                                     }}
                                 />

@@ -1,6 +1,7 @@
 import {applySnapshot, Instance, SnapshotIn, SnapshotOut, types} from "mobx-state-tree";
 import {withSetPropAction} from "../helpers/withSetPropAction";
 import {GroupModel, GroupSnapshotIn} from "./GroupModel";
+import {GroupItemSnapshotIn} from "../GroupItem/GroupItemModel";
 
 export const GroupStoreModel = types
     .model("GroupStoreModel")
@@ -34,6 +35,13 @@ export const GroupStoreModel = types
                 return false
             }
             return true
+        },
+        updateGroupItems(group: GroupSnapshotIn, groupItems: GroupItemSnapshotIn[]){
+            const groupIndex = self.groups.findIndex(g => g.groupId === group.groupId);
+            if (groupIndex !== -1) {
+                applySnapshot(self.groups[groupIndex].groupItems, groupItems);
+            }
+            return self.groups[groupIndex]
         }
     })) // eslint-disable-line @typescript-eslint/no-unused-vars
 

@@ -1,6 +1,7 @@
 import {Instance, SnapshotIn, SnapshotOut, types} from "mobx-state-tree";
 import {withSetPropAction} from "../helpers/withSetPropAction";
-import {MemberModel} from "../User/MemberModel";
+import {createMemberDefaultModel, MemberModel} from "../User/MemberModel";
+import {GroupItemModel} from "../GroupItem/GroupItemModel";
 
 export const GroupModel = types
     .model("GroupModel")
@@ -13,6 +14,7 @@ export const GroupModel = types
         users: types.array(MemberModel),
         lastEpoch: types.integer,
         epoch: types.integer,
+        groupItems: types.array(GroupItemModel)
     })
     .actions(withSetPropAction)
     .views((self) => ({})) // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -21,9 +23,18 @@ export const GroupModel = types
             self.serializedGroup = serializedIdentity
         },
         clear(){
+            self.groupId = ""
+            self.serializedUserGroupId = ""
+            self.name = ""
+            self.creator.clear()
+            self.creator = createMemberDefaultModel().create()
             self.serializedGroup = ""
             self.users.forEach((user)=>user.clear())
             self.users.clear()
+            self.lastEpoch = 1
+            self.epoch = 1
+            self.groupItems.forEach((groupItem)=>groupItem.clear())
+            self.groupItems.clear()
         },
         setEpoch(epoch: number){
             self.epoch = epoch
@@ -45,7 +56,7 @@ export interface GroupSnapshotIn extends SnapshotIn<typeof GroupModel> {
 export const createGroupDefaultModel = () => types.optional(GroupModel, {
     groupId: "",
     serializedUserGroupId: "",
-    creator: {id:"", email: "", keyPackage: ""},
+    creator: createMemberDefaultModel().create(),
     name: '',
     serializedGroup: '',
     lastEpoch: 1,

@@ -1,8 +1,8 @@
 import {Instance, SnapshotOut, types} from "mobx-state-tree"
 import {UserStoreModel} from "./User/UserStore";
 import {AuthStoreModel} from "./Auth/AuthStore";
-import {GroupStoreModel} from "./MLS/GroupStore";
-import {GroupModel} from "./MLS/GroupModel";
+import {GroupStoreModel} from "./Group/GroupStore";
+import {GroupModel} from "./Group/GroupModel";
 import {MemberModel} from "./User/MemberModel";
 import {UserModel} from "./User/UserModel";
 

@@ -12,6 +12,7 @@ export const MemberModel = types
     .views((self) => ({})) // eslint-disable-line @typescript-eslint/no-unused-vars
     .actions((self) => ({
         clear() {
+            self.id = ""
             self.email = ""
             self.keyPackage = ""
         }

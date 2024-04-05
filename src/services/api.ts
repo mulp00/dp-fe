@@ -92,18 +92,16 @@ export interface PatchSerializedUserGroup {
     epoch:number;
 }
 
-export type GetGroupsToJoin = {
-    welcomeMessages: [
-        {
-            welcomeMessageId: string;
-            id: string;
-            groupId: string;
-            message: string,
-            ratchetTree: string,
-            epoch: string,
-        }
-    ]
-}
+export type GetGroupsToJoin = [
+    {
+        welcomeMessageId: string;
+        id: string;
+        groupId: string;
+        message: string,
+        ratchetTree: string,
+        epoch: string,
+    }
+]
 
 export interface CreateSerializedUserGroupAfterJoinPayload {
     groupId: string,
@@ -117,14 +115,12 @@ export interface GetCommitMessagesPayload {
     epoch: number;
 }
 
-export interface GetCommitMessagesResponse {
-    messages: [
-        {
-            message: string;
-            epoch: number;
-        }
-    ]
-}
+export type GetCommitMessagesResponse = [
+    {
+        message: string;
+        epoch: number;
+    }
+]
 
 export interface PatchKeyStorePayload {
     keyStore: string;
@@ -151,6 +147,31 @@ export interface CreateGeneralCommitMessagePayload {
     groupId: string;
     epoch: number;
 }
+
+export interface CreateGroupItemPayload{
+    name: string;
+    groupId: string;
+    type: GroupItemType;
+    content: string;
+}
+
+export interface GroupItemResponse{
+    id: string;
+    name: string;
+    groupId: string;
+    type: GroupItemType;
+    content: string;
+}
+
+export type GetGroupItemCollectionResponse = [
+    GroupItemResponse
+]
+
+export interface GetGroupItemsPayload{
+    groupId: string;
+}
+
+export type GroupItemType = 'login'|'card'
 
 class ApiService {
     private axiosInstance: AxiosInstance;
@@ -335,6 +356,20 @@ class ApiService {
     }
     public async postGeneralCommitMessage(payload: CreateGeneralCommitMessagePayload): Promise<string> {
         return this.axiosInstance.post<string>(`/createGeneralCommitMessage`, payload, {
+            headers: {
+                "Content-type": "application/ld+json"
+            }
+        }).then(response => response.data);
+    }
+    public async createNewGroupItem(payload: CreateGroupItemPayload): Promise<GroupItemResponse> {
+        return this.axiosInstance.post<GroupItemResponse>(`/createGroupItem`, payload, {
+            headers: {
+                "Content-type": "application/ld+json"
+            }
+        }).then(response => response.data);
+    }
+    public async getGroupItems(payload: GetGroupItemsPayload): Promise<GetGroupItemCollectionResponse> {
+        return this.axiosInstance.post<GetGroupItemCollectionResponse>(`/getGroupItems`, payload, {
             headers: {
                 "Content-type": "application/ld+json"
             }

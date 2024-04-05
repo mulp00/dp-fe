@@ -13,7 +13,7 @@ import {
     Grid,
     IconButton,
     List,
-    ListItem,
+    ListItem, ListItemButton,
     SpeedDial,
     SpeedDialAction,
     SpeedDialIcon,
@@ -30,11 +30,12 @@ import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
 import GroupAddIcon from '@mui/icons-material/GroupAdd';
 import {useDrawer} from "../context/DrawerContext";
 import __wbg_init, {Group as MlsGroup, Identity, KeyPackage, Provider, RatchetTree} from "../utils/crypto/openmls";
-import {applySnapshot} from "mobx-state-tree";
+import {applySnapshot, castToSnapshot} from "mobx-state-tree";
 import {runInAction} from "mobx";
 import {ConfirmModal, CreateGroupModal, EditGroupModal} from "../Components";
-import {GroupSnapshotIn} from "../models/MLS/GroupModel";
+import {createGroupDefaultModel, GroupSnapshotIn} from "../models/Group/GroupModel";
 import {MemberSnapshotIn} from "../models/User/MemberModel";
+import {snapshotProcessor} from "mobx-state-tree/dist/types/utility-types/snapshotProcessor";
 
 export const Home = observer(function Home() {
     const {userStore, groupStore} = useStores()
@@ -48,15 +49,8 @@ export const Home = observer(function Home() {
     const [isCreateGroupModalOpen, setIsCreateGroupModalOpen] = useState<boolean>(false)
     const [isEditGroupModalOpen, setIsEditGroupModalOpen] = useState<boolean>(false)
     const [isConfirmErrorUserAddModalOpen, setIsConfirmErrorUserAddModalOpen] = useState<boolean>(false)
-    const [editedGroup, setEditedGroup] = useState<GroupSnapshotIn>({
-        groupId: "",
-        serializedUserGroupId: "",
-        creator: {id: "", email: "", keyPackage: ""},
-        name: '',
-        serializedGroup: '',
-        lastEpoch: 1,
-        epoch: 1,
-    })
+    const [selectedGroup, setSelectedGroup] = useState<GroupSnapshotIn>(createGroupDefaultModel().create())
+    const [editedGroup, setEditedGroup] = useState<GroupSnapshotIn>(createGroupDefaultModel().create())
 
     function stringToUint8Array(inputString: string): Uint8Array {
         const numberArray = inputString.split(',').map(Number);
@@ -122,7 +116,7 @@ export const Home = observer(function Home() {
                 message: string,
                 ratchetTree: string,
                 epoch: string
-            }[] = (await apiService.getGroupsToJoin()).welcomeMessages
+            }[] = await apiService.getGroupsToJoin()
 
             const provider = Provider.deserialize(userStore.me.keyStore);
 
@@ -239,7 +233,7 @@ export const Home = observer(function Home() {
                 const commitMessages: {
                     message: string;
                     epoch: number;
-                }[] = (await apiService.getCommitMessages({groupId: group.groupId, epoch: group.lastEpoch})).messages
+                }[] = await apiService.getCommitMessages({groupId: group.groupId, epoch: group.lastEpoch})
 
                 if (commitMessages.length === 0) continue
 
@@ -387,6 +381,35 @@ export const Home = observer(function Home() {
         return true;
     }
 
+    useEffect( () => {
+
+        const loadGroupItems = async ()=>{
+            const groupItems = await apiService.getGroupItems({groupId: selectedGroup.groupId})
+
+            runInAction(() => {
+                groupStore.updateGroupItems(selectedGroup, groupItems)
+            });
+        }
+        if(isWasmInitialized && selectedGroup.groupId !== '') {
+            loadGroupItems()
+        }
+        // groupStore.updateGroup()
+    }, [isWasmInitialized,groupStore, selectedGroup]);
+
+    const createNewGroupItem = async() =>{
+
+        console.log('tst')
+        const response = await apiService.createNewGroupItem({
+            groupId: selectedGroup.groupId,
+            name: "testovaci",
+            content: "ahoj jak se mas",
+            type: "login"
+        })
+
+        console.log(response)
+
+    }
+
     useEffect(() => {
         const initializeWasm = async () => {
             await __wbg_init();
@@ -413,16 +436,13 @@ export const Home = observer(function Home() {
         }
     }, [isWasmInitialized, initialLoadDone]);
 
-    const groups = groupStore.groups.map((group) => {
-        return {name: group.name, members: group.users.length}
-    })
-
-    const rows = [
-        {id: 1, type: 'card', name: 'Firemní ČSOB'},
-    ];
+    //
+    // const rows = [
+    //     {id: 1, type: 'card', name: 'Firemní ČSOB'},
+    // ];
 
     const actions = [
-        {icon: <KeyIcon/>, name: 'Přihlašovací údaje', onClick: () => console.log('prihl')},
+        {icon: <KeyIcon/>, name: 'Přihlašovací údaje', onClick: createNewGroupItem},
         {icon: <CreditCardIcon/>, name: 'Karta', onClick: () => console.log('karta')},
         {icon: <InsertDriveFileIcon/>, name: 'Soubor', onClick: () => console.log('soubor')},
     ];
@@ -492,29 +512,32 @@ export const Home = observer(function Home() {
             <CardContent>
                 <List>
                     {groupStore.groups.map((group, index) => (
-                        <React.Fragment key={index}>
-                            <ListItem>
+                        <React.Fragment key={group.groupId /* Use group.id instead of index for key if possible */}>
+                            <ListItemButton
+                                selected={selectedGroup.groupId === group.groupId}
+                                onClick={() => setSelectedGroup(group)}
+                            >
                                 <Container>
                                     <Typography variant="body2">{group.name}</Typography>
                                     <Typography variant="body2" color="text.secondary">
                                         {group.users.length} členů
                                     </Typography>
                                 </Container>
-                                <IconButton onClick={() => {
-                                    setEditedGroup(group)
-                                    setIsEditGroupModalOpen(true)
+                                <IconButton onClick={(event) => {
+                                    event.stopPropagation(); // Prevent ListItem click when IconButton is clicked
+                                    setEditedGroup(group);
+                                    setIsEditGroupModalOpen(true);
                                 }}>
                                     <MoreVertIcon/>
                                 </IconButton>
-                            </ListItem>
-                            {index < groups.length - 1 && <Divider/>}
+                            </ListItemButton>
+                            {index < groupStore.groups.length - 1 && <Divider/>}
                         </React.Fragment>
                     ))}
                 </List>
             </CardContent>
         </>
     );
-
     const conditionalPadding = isMobile ? 2 : 5; // Conditional padding based on screen size
 
     return (
@@ -574,35 +597,57 @@ export const Home = observer(function Home() {
                         </Grid>
                     )}
 
+                    
                     <Grid item xs={isMobile ? 12 : 9}>
+
                         <Card sx={{height: '100%', width: '100%'}} elevation={3}>
-                            <CardContent sx={{backgroundColor: "#dddddd", height: 40}}>
-                                <SpeedDial
-                                    direction={'right'}
-                                    ariaLabel="profile"
-                                    icon={<SpeedDialIcon/>}
-                                    FabProps={{size: "small", style: {boxShadow: "none"}}}
-                                    sx={{height: 40}}
+                            {selectedGroup.groupId !== ""
+                            ?
+                                <Box>
+                                    <CardContent sx={{backgroundColor: "#dddddd", height: 40}}>
+                                        <SpeedDial
+                                            direction={'right'}
+                                            ariaLabel="profile"
+                                            icon={<SpeedDialIcon/>}
+                                            FabProps={{size: "small", style: {boxShadow: "none"}}}
+                                            sx={{height: 40}}
+                                        >
+                                            {actions.map((action) => (
+                                                <SpeedDialAction
+                                                    key={action.name}
+                                                    icon={action.icon}
+                                                    tooltipTitle={action.name}
+                                                    onClick={action.onClick}
+                                                />
+                                            ))}
+                                        </SpeedDial>
+                                    </CardContent>
+                                    <DataGrid
+                                        sx={{borderWidth: 0}}
+                                        rows={selectedGroup.groupItems?.map((groupItem) => {
+                                            return {id: groupItem.id, type: groupItem.type, name: groupItem.name}
+                                        })}
+                                        columns={columns}
+                                        autoHeight
+                                        disableColumnMenu
+                                        disableRowSelectionOnClick
+                                    />
+                                </Box>
+                             :
+                                <Box
+                                    display="flex"
+                                    justifyContent="center"
+                                    alignItems="center"
+                                    height="60%"
+                                    width="100%"
                                 >
-                                    {actions.map((action) => (
-                                        <SpeedDialAction
-                                            key={action.name}
-                                            icon={action.icon}
-                                            tooltipTitle={action.name}
-                                            onClick={action.onClick}
-                                        />
-                                    ))}
-                                </SpeedDial>
-                            </CardContent>
-                            <DataGrid
-                                sx={{borderWidth: 0}}
-                                rows={rows}
-                                columns={columns}
-                                autoHeight
-                                disableColumnMenu
-                                disableRowSelectionOnClick
-                            />
+                                    <Typography variant="h6" color={theme.palette.grey["400"]}>Vyberte Skupinu</Typography>
+                                </Box>
+
+                            }
+                             
                         </Card>
+                       
                     </Grid>
                 </Grid>
             </Box></>
