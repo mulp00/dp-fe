@@ -8,7 +8,7 @@ export type ConfirmModalProps = {
     handleSubmit: () => any;
     title: string;
     text: string;
-    confirmText: string;
+    confirmText?: string;
     successMessage: string;
 };
 
@@ -66,8 +66,8 @@ export const ConfirmModal = observer(function ConfirmModal(props: ConfirmModalPr
                         {props.text}
                     </Typography>
                     <Box display="flex" justifyContent="space-between" mt={2}>
-                        <Button variant="outlined" onClick={handleClose}>Zrušit</Button>
-                        {state === "ready" && (
+                        <Button variant="outlined" onClick={handleClose}>Zavřít</Button>
+                        {props.confirmText && state === "ready" && (
                             <Button variant="contained" type="button" color="primary"
                                     onClick={handleSubmit}>{props.confirmText}</Button>
                         )}

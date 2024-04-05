@@ -32,6 +32,11 @@ export const EditGroupModal = observer(function EditGroupModal(props: EditGroupM
 
     const [isRefreshKeyModalOpen, setIsRefreshKeyModalOpen] = useState<boolean>(false)
 
+    const [isLeaveGroupModalOpen, setIsLeaveGroupModalOpen] = useState<boolean>(false)
+    const [isRemoveUserFromGroupModalOpen, setIsRemoveUserFromGroupModalOpen] = useState<boolean>(false)
+
+    const [userToRemove, setUserToRemove] = useState<MemberSnapshotIn | null>(null);
+
     const findUsers = async (event: React.SyntheticEvent<Element, Event>, value: string) => {
         if (value.trim()) {
             const users = await apiService.getUsersByEmail({email: value})
@@ -53,6 +58,19 @@ export const EditGroupModal = observer(function EditGroupModal(props: EditGroupM
             setSelectedUser(null)
         }
     };
+
+    const handleRemoveUserConfirmation = async () => {
+        if(userToRemove) {
+            const success = await props.handleRemoveUser(userToRemove, props.group);
+            if(success) {
+                // Optionally close the modal and reset state here
+                setIsRemoveUserFromGroupModalOpen(false);
+                setUserToRemove(null);
+            }
+            // Handle failure or additional logic here
+        }
+    };
+
 
     const closeModal = () => {
         props.handleClose();
@@ -143,9 +161,12 @@ export const EditGroupModal = observer(function EditGroupModal(props: EditGroupM
                 params.value.email === props.group?.creator.email ?
                     <Button variant="outlined" disabled color="error">Zakázáno</Button> :
                     params.value.email === props.me.email ?
-                        <Button variant="outlined" onClick={() => props.handleLeaveGroup(props.group)}
+                        <Button variant="outlined" onClick={() => setIsLeaveGroupModalOpen(true)}
                                 color="error">Opustit</Button> :
-                        <Button variant="outlined" onClick={() => props.handleRemoveUser(params.value, props.group)}
+                        <Button variant="outlined" onClick={() => {
+                            setUserToRemove(params.value); // Store the user for removal
+                            setIsRemoveUserFromGroupModalOpen(true); // Open the confirmation modal
+                        }}
                                 color="error">Odebrat</Button>
             ),
         }
@@ -166,11 +187,29 @@ export const EditGroupModal = observer(function EditGroupModal(props: EditGroupM
                 <ConfirmModal
                     isOpen={isRefreshKeyModalOpen}
                     handleClose={() => setIsRefreshKeyModalOpen(false)}
-                    handleSubmit={() => rotateGroupKey()} // TODO implementovat funkci na přegenerovani klice
+                    handleSubmit={() => rotateGroupKey()}
                     title="Aktualizovat skupinový klíč"
                     text="Pokud máte pochyby, zda nedošlo ke kompromitaci skupiný nebo vašeho klíče ve skupině, vygenerujte nový!"
                     confirmText="Vygenerovat"
                     successMessage="Klíč aktualizován"
+                />
+                <ConfirmModal
+                    isOpen={isLeaveGroupModalOpen}
+                    handleClose={() => setIsLeaveGroupModalOpen(false)}
+                    handleSubmit={() => props.handleLeaveGroup(props.group)}
+                    title="Opustit skupinu"
+                    text="Opravdu checete opsutit skupinu? Nebude znovu možné se do ní přidat! Pokud se budete chtít do skupiny znovu přidat, požádejte jiného člena o odebrání."
+                    confirmText="Opustit"
+                    successMessage="Skupina opuštěna"
+                />
+                <ConfirmModal
+                    isOpen={isRemoveUserFromGroupModalOpen}
+                    handleClose={() => setIsRemoveUserFromGroupModalOpen(false)}
+                    handleSubmit={handleRemoveUserConfirmation} // HERE IS THE INCOMPLETE FUNCTINO CALL
+                    title="Odebrat uživatele"
+                    text="Jste si jisti, že chcete uživatele odebrat? Bude možné ho následně znovu přidat!"
+                    confirmText="Odebrat"
+                    successMessage="Uživatel odebrán"
                 />
                 <Box sx={style}>
                     <Typography id="modal-modal-title" variant="h6" component="h2">

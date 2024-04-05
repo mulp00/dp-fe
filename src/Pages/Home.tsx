@@ -32,7 +32,7 @@ import {useDrawer} from "../context/DrawerContext";
 import __wbg_init, {Group as MlsGroup, Identity, KeyPackage, Provider, RatchetTree} from "../utils/crypto/openmls";
 import {applySnapshot} from "mobx-state-tree";
 import {runInAction} from "mobx";
-import {CreateGroupModal, EditGroupModal} from "../Components";
+import {ConfirmModal, CreateGroupModal, EditGroupModal} from "../Components";
 import {GroupSnapshotIn} from "../models/MLS/GroupModel";
 import {MemberSnapshotIn} from "../models/User/MemberModel";
 
@@ -47,7 +47,7 @@ export const Home = observer(function Home() {
 
     const [isCreateGroupModalOpen, setIsCreateGroupModalOpen] = useState<boolean>(false)
     const [isEditGroupModalOpen, setIsEditGroupModalOpen] = useState<boolean>(false)
-
+    const [isConfirmErrorUserAddModalOpen, setIsConfirmErrorUserAddModalOpen] = useState<boolean>(false)
     const [editedGroup, setEditedGroup] = useState<GroupSnapshotIn>({
         groupId: "",
         serializedUserGroupId: "",
@@ -220,8 +220,14 @@ export const Home = observer(function Home() {
 
             return true;
         } catch (error) {
+            if (error instanceof Error) {
+                if (error.message.includes("Duplicate signature key in proposals and group")) {
+                    setIsConfirmErrorUserAddModalOpen(true)
+                    return false
+                }
+            }
             console.error("Unexpected error while adding user ", error);
-            return false;
+            return false
         }
     }
 
@@ -524,6 +530,14 @@ export const Home = observer(function Home() {
     return (
 
         <>
+            <ConfirmModal
+                isOpen={isConfirmErrorUserAddModalOpen}
+                handleClose={() => setIsConfirmErrorUserAddModalOpen(false)}
+                handleSubmit={() => setIsConfirmErrorUserAddModalOpen(false)}
+                title="Nelze přidat uživatele"
+                text="Uživatel již jednou skupinu opustil. Není možné ho znovu přidat."
+                successMessage=""
+            />
             <CreateGroupModal
                 isOpen={isCreateGroupModalOpen}
                 handleClose={() => setIsCreateGroupModalOpen(false)}

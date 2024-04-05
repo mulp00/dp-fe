@@ -93,7 +93,7 @@ const ResponsiveAppBar: FC = observer(function ResponsiveAppBar() {
 
     const conditionalPadding = isMobile ? 2 : 5; // Conditional padding based on screen size
 
-    return (
+    return ( // TODO asi to bude chtit nejak poresit to opetovne pridani do skupiny po tom co ji clovek opusti. Pak asi uz zacit resit samotne sifrovane polozky. Pak registraci a zmenu prihlasovacich udaju tj aktualizace mfkdf
         <>
             <ConfirmModal
                 isOpen={isRefreshKeyModalOpen}
