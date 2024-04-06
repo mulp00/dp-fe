@@ -27,7 +27,7 @@ import apiService from "../services/api";
 import {Identity, Provider} from "../utils/crypto/openmls";
 import {runInAction} from "mobx";
 import LockResetIcon from '@mui/icons-material/LockReset';
-import {ConfirmModal} from "./ConfirmModal";
+import {ConfirmModal} from "./Modals/ConfirmModal";
 
 const ResponsiveAppBar: FC = observer(function ResponsiveAppBar() {
 

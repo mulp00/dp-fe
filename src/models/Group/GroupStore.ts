@@ -42,6 +42,13 @@ export const GroupStoreModel = types
                 applySnapshot(self.groups[groupIndex].groupItems, groupItems);
             }
             return self.groups[groupIndex]
+        },
+        addGroupItemToGroup(group: GroupSnapshotIn, item: GroupItemSnapshotIn){
+            const groupIndex = self.groups.findIndex(g => g.groupId === group.groupId);
+            if (groupIndex !== -1) {
+                self.groups[groupIndex].addGroupItem(item)
+            }
+            return self.groups[groupIndex]
         }
     })) // eslint-disable-line @typescript-eslint/no-unused-vars
 

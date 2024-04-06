@@ -4,6 +4,7 @@ import {useStores} from "../models/helpers/useStores";
 import {useApiService} from "../hooks";
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import {
+    Alert,
     Box,
     Card,
     CardContent,
@@ -13,7 +14,7 @@ import {
     Grid,
     IconButton,
     List,
-    ListItem, ListItemButton,
+    ListItem, ListItemButton, Snackbar,
     SpeedDial,
     SpeedDialAction,
     SpeedDialIcon,
@@ -36,6 +37,8 @@ import {ConfirmModal, CreateGroupModal, EditGroupModal} from "../Components";
 import {createGroupDefaultModel, GroupSnapshotIn} from "../models/Group/GroupModel";
 import {MemberSnapshotIn} from "../models/User/MemberModel";
 import {snapshotProcessor} from "mobx-state-tree/dist/types/utility-types/snapshotProcessor";
+import {AddItemModal} from "../Components/Modals/AddItemModal";
+import {GroupItemSnapshotIn} from "../models/GroupItem/GroupItemModel";
 
 export const Home = observer(function Home() {
     const {userStore, groupStore} = useStores()
@@ -51,6 +54,10 @@ export const Home = observer(function Home() {
     const [isConfirmErrorUserAddModalOpen, setIsConfirmErrorUserAddModalOpen] = useState<boolean>(false)
     const [selectedGroup, setSelectedGroup] = useState<GroupSnapshotIn>(createGroupDefaultModel().create())
     const [editedGroup, setEditedGroup] = useState<GroupSnapshotIn>(createGroupDefaultModel().create())
+    const [isAddGroupItemModalOpen, setIsAddGroupItemModalOpen] = useState<boolean>(false)
+    const [addItemType, setAddItemType] = useState<string>("")
+
+    const [feedBack, setFeedback] = useState<{type: "success"|"error", message: string}|null|undefined>()
 
     function stringToUint8Array(inputString: string): Uint8Array {
         const numberArray = inputString.split(',').map(Number);
@@ -100,7 +107,6 @@ export const Home = observer(function Home() {
             ratchetTree.free()
             group.free();
 
-            return "Group successfully created.";
         } catch (error) {
             console.error("Failed to create group:", error);
             throw new Error("Failed to create group.");
@@ -381,33 +387,33 @@ export const Home = observer(function Home() {
         return true;
     }
 
-    useEffect( () => {
+    useEffect(() => {
 
-        const loadGroupItems = async ()=>{
+        const loadGroupItems = async () => {
             const groupItems = await apiService.getGroupItems({groupId: selectedGroup.groupId})
 
             runInAction(() => {
                 groupStore.updateGroupItems(selectedGroup, groupItems)
             });
         }
-        if(isWasmInitialized && selectedGroup.groupId !== '') {
+        if (isWasmInitialized && selectedGroup.groupId !== '') {
             loadGroupItems()
         }
         // groupStore.updateGroup()
-    }, [isWasmInitialized,groupStore, selectedGroup]);
+    }, [isWasmInitialized, groupStore, selectedGroup]);
 
-    const createNewGroupItem = async() =>{
+    const createNewGroupItem = async (group: GroupSnapshotIn, groupItem: GroupItemSnapshotIn) => {
 
-        console.log('tst')
         const response = await apiService.createNewGroupItem({
-            groupId: selectedGroup.groupId,
-            name: "testovaci",
-            content: "ahoj jak se mas",
-            type: "login"
+            groupId: group.groupId,
+            name: groupItem.name,
+            content: groupItem.content,
+            type: groupItem.type
         })
 
-        console.log(response)
+        groupStore.addGroupItemToGroup(selectedGroup, response)
 
+        return true
     }
 
     useEffect(() => {
@@ -442,9 +448,19 @@ export const Home = observer(function Home() {
     // ];
 
     const actions = [
-        {icon: <KeyIcon/>, name: 'Přihlašovací údaje', onClick: createNewGroupItem},
-        {icon: <CreditCardIcon/>, name: 'Karta', onClick: () => console.log('karta')},
-        {icon: <InsertDriveFileIcon/>, name: 'Soubor', onClick: () => console.log('soubor')},
+        {
+            icon: <KeyIcon/>, name: 'Přihlašovací údaje', onClick: () => {
+                setAddItemType("login")
+                setIsAddGroupItemModalOpen(true)
+            }
+        },
+        {
+            icon: <CreditCardIcon/>, name: 'Karta', onClick: () => {
+                setAddItemType("card")
+                setIsAddGroupItemModalOpen(true)
+            }
+        },
+        // {icon: <InsertDriveFileIcon/>, name: 'Soubor', onClick: () => console.log('soubor')},
     ];
 
     const columns: GridColDef[] = [
@@ -555,6 +571,7 @@ export const Home = observer(function Home() {
                 isOpen={isCreateGroupModalOpen}
                 handleClose={() => setIsCreateGroupModalOpen(false)}
                 handleSubmit={createGroup}
+                onFeedback={(type, message)=>setFeedback({type, message})}
             />
             <EditGroupModal
                 isOpen={isEditGroupModalOpen}
@@ -564,6 +581,14 @@ export const Home = observer(function Home() {
                 handleAddUser={addUser}
                 handleRemoveUser={removeUser}
                 handleLeaveGroup={leaveGroup}
+            />
+            <AddItemModal
+                isOpen={isAddGroupItemModalOpen}
+                handleClose={() => setIsAddGroupItemModalOpen(false)}
+                group={selectedGroup}
+                onItemCreate={createNewGroupItem}
+                type={addItemType}
+                onFeedback={(type, message)=>setFeedback({type, message})}
             />
             <Box
                 sx={{
@@ -597,13 +622,16 @@ export const Home = observer(function Home() {
                         </Grid>
                     )}
 
-                    
+
                     <Grid item xs={isMobile ? 12 : 9}>
 
                         <Card sx={{height: '100%', width: '100%'}} elevation={3}>
                             {selectedGroup.groupId !== ""
-                            ?
-                                <Box>
+                                ?
+                                <Box
+                                    height="100%"
+                                    width="100%"
+                                >
                                     <CardContent sx={{backgroundColor: "#dddddd", height: 40}}>
                                         <SpeedDial
                                             direction={'right'}
@@ -622,18 +650,50 @@ export const Home = observer(function Home() {
                                             ))}
                                         </SpeedDial>
                                     </CardContent>
-                                    <DataGrid
-                                        sx={{borderWidth: 0}}
-                                        rows={selectedGroup.groupItems?.map((groupItem) => {
-                                            return {id: groupItem.id, type: groupItem.type, name: groupItem.name}
-                                        })}
-                                        columns={columns}
-                                        autoHeight
-                                        disableColumnMenu
-                                        disableRowSelectionOnClick
-                                    />
+                                    {selectedGroup.groupItems && selectedGroup.groupItems.length > 0
+                                        ?
+                                        <DataGrid
+                                            sx={{borderWidth: 0}}
+                                            rows={selectedGroup.groupItems?.map((groupItem) => {
+                                                return {id: groupItem.id, type: groupItem.type, name: groupItem.name}
+                                            })}
+                                            columns={columns}
+                                            autoHeight
+                                            disableColumnMenu
+                                            disableRowSelectionOnClick
+                                        />
+                                        :
+                                        <Box
+                                            flexDirection="column"
+                                            display="flex"
+                                            justifyContent="center"
+                                            alignItems="center"
+                                            height="60%"
+                                            width="100%"
+                                        >
+                                            <Typography height={50} variant="h6" color={theme.palette.grey["400"]}>Přidejte
+                                                položky</Typography>
+                                            <SpeedDial
+                                                direction={'down'}
+                                                ariaLabel="profile"
+                                                icon={<SpeedDialIcon/>}
+                                                FabProps={{size: "small", style: {boxShadow: "none"}}}
+                                                sx={{height: 40}}
+                                            >
+                                                {actions.map((action) => (
+                                                    <SpeedDialAction
+                                                        key={action.name}
+                                                        icon={action.icon}
+                                                        tooltipTitle={action.name}
+                                                        onClick={action.onClick}
+                                                    />
+                                                ))}
+                                            </SpeedDial>
+                                        </Box>
+                                    }
+
                                 </Box>
-                             :
+                                :
                                 <Box
                                     display="flex"
                                     justifyContent="center"
@@ -641,16 +701,23 @@ export const Home = observer(function Home() {
                                     height="60%"
                                     width="100%"
                                 >
-                                    <Typography variant="h6" color={theme.palette.grey["400"]}>Vyberte Skupinu</Typography>
+                                    <Typography variant="h6" color={theme.palette.grey["400"]}>Vyberte
+                                        Skupinu</Typography>
                                 </Box>
 
                             }
-                             
+
                         </Card>
-                       
+
                     </Grid>
                 </Grid>
-            </Box></>
+            </Box>
+            <Snackbar open={!!feedBack} autoHideDuration={6000} onClose={() => setFeedback(null)}>
+                <Alert onClose={() => setFeedback(null)} severity={feedBack?.type} sx={{ width: '100%' }}>
+                    {feedBack?.message}
+                </Alert>
+            </Snackbar>
+        </>
     );
 })
 

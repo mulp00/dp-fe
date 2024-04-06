@@ -1,15 +1,15 @@
 import React, {useMemo, useState} from 'react';
 import {observer} from "mobx-react";
 import {Autocomplete, Box, Button, Modal, Stack, TextField, Typography} from "@mui/material";
-import {GroupSnapshotIn} from "../models/Group/GroupModel";
-import {User} from "../models/User/UserModel";
+import {GroupSnapshotIn} from "../../models/Group/GroupModel";
+import {User} from "../../models/User/UserModel";
 import {DataGrid, GridColDef, GridRenderCellParams} from "@mui/x-data-grid";
-import {useApiService} from "../hooks";
-import {Member, MemberSnapshotIn} from "../models/User/MemberModel";
+import {useApiService} from "../../hooks";
+import {Member, MemberSnapshotIn} from "../../models/User/MemberModel";
 import LockResetIcon from '@mui/icons-material/LockReset';
 import {ConfirmModal} from "./ConfirmModal";
-import {Group as MlsGroup, Identity, Provider} from "../utils/crypto/openmls";
-import {useStores} from "../models/helpers/useStores";
+import {Group as MlsGroup, Identity, Provider} from "../../utils/crypto/openmls";
+import {useStores} from "../../models/helpers/useStores";
 import {runInAction} from "mobx";
 
 export type EditGroupModalProps = {

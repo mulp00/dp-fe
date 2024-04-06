@@ -1,7 +1,7 @@
 import {Instance, SnapshotIn, SnapshotOut, types} from "mobx-state-tree";
 import {withSetPropAction} from "../helpers/withSetPropAction";
 import {createMemberDefaultModel, MemberModel} from "../User/MemberModel";
-import {GroupItemModel} from "../GroupItem/GroupItemModel";
+import {GroupItemModel, GroupItemSnapshotIn} from "../GroupItem/GroupItemModel";
 
 export const GroupModel = types
     .model("GroupModel")
@@ -41,6 +41,9 @@ export const GroupModel = types
         },
         setLastEpoch(lastEpoch: number){
             self.lastEpoch = lastEpoch
+        },
+        addGroupItem(item: GroupItemSnapshotIn){
+            self.groupItems.push(item)
         }
     })) // eslint-disable-line @typescript-eslint/no-unused-vars
 

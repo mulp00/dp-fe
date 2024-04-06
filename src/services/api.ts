@@ -1,4 +1,5 @@
 import axios, {AxiosInstance} from 'axios';
+import {Instance} from "mobx-state-tree";
 
 export interface Member {
     id: string;
@@ -152,7 +153,7 @@ export interface CreateGeneralCommitMessagePayload {
 export interface CreateGroupItemPayload {
     name: string;
     groupId: string;
-    type: GroupItemType;
+    type: string;
     content: string;
 }
 
@@ -160,7 +161,7 @@ export interface GroupItemResponse {
     id: string;
     name: string;
     groupId: string;
-    type: GroupItemType;
+    type: string;
     content: string;
 }
 
@@ -171,8 +172,6 @@ export type GetGroupItemCollectionResponse = [
 export interface GetGroupItemsPayload {
     groupId: string;
 }
-
-export type GroupItemType = 'login' | 'card'
 
 export interface RefreshTokenPayload {
     token: string;
