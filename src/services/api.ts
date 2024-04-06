@@ -89,7 +89,7 @@ export interface PostWelcomeMessage {
 export interface PatchSerializedUserGroup {
     serializedUserGroupId: string;
     serializedUserGroup: string;
-    epoch:number;
+    epoch: number;
 }
 
 export type GetGroupsToJoin = [
@@ -125,6 +125,7 @@ export type GetCommitMessagesResponse = [
 export interface PatchKeyStorePayload {
     keyStore: string;
 }
+
 export interface PatchKeyPackagePayload {
     keyPackage: string;
 }
@@ -136,7 +137,7 @@ export interface RemoveUserPayload {
     epoch: number;
 }
 
-export interface LeaveGroupPayload{
+export interface LeaveGroupPayload {
     message: string;
     groupId: string;
     epoch: number;
@@ -148,14 +149,14 @@ export interface CreateGeneralCommitMessagePayload {
     epoch: number;
 }
 
-export interface CreateGroupItemPayload{
+export interface CreateGroupItemPayload {
     name: string;
     groupId: string;
     type: GroupItemType;
     content: string;
 }
 
-export interface GroupItemResponse{
+export interface GroupItemResponse {
     id: string;
     name: string;
     groupId: string;
@@ -167,19 +168,30 @@ export type GetGroupItemCollectionResponse = [
     GroupItemResponse
 ]
 
-export interface GetGroupItemsPayload{
+export interface GetGroupItemsPayload {
     groupId: string;
 }
 
-export type GroupItemType = 'login'|'card'
+export type GroupItemType = 'login' | 'card'
+
+export interface RefreshTokenPayload {
+    token: string;
+}
+
+export interface RefreshTokenResponse {
+    token: string;
+}
+
+type ErrorHandler = (error: any) => void;
 
 class ApiService {
     private axiosInstance: AxiosInstance;
+    errorHandlers: ErrorHandler[] = []; // Use the ErrorHandler type here
 
     constructor() {
         this.axiosInstance = axios.create({
             baseURL: 'https://localhost/',
-            // withCredentials: true, TODO
+            // withCredentials: true
         });
 
         this.initializeInterceptors();
@@ -193,46 +205,92 @@ class ApiService {
         delete this.axiosInstance.defaults.headers.common['Authorization'];
     }
 
+    public onAuthError(handler: (error: any) => void): void {
+        this.errorHandlers.push(handler);
+    }
+
+    private handleAuthError(error: any): void {
+        this.errorHandlers.forEach(handler => handler(error));
+    }
+
 
     private initializeInterceptors() {
-        this.axiosInstance.interceptors.request.use(
-            (config) => {
-                // Perform actions before request is sent, like adding auth headers
-                // config.headers['Authorization'] = 'Bearer yourAuthToken';
-                return config;
-            },
-            (error) => {
-                // Do something with request error
-                return Promise.reject(error);
-            }
-        );
-
         this.axiosInstance.interceptors.response.use(
             (response) => {
-                // Any status code that lie within the range of 2xx cause this function to trigger
                 return response;
             },
-            (error) => {
-                // Any status codes that falls outside the range of 2xx cause this function to trigger
-                // Do something with response error
+            async (error) => {
+
+                const originalRequest = error.config;
+
+
+                if (error.response) {
+
+                    if (error.response.status === 401 && !originalRequest._retry) {
+                        if (originalRequest.url === '/token/refresh') {
+                            return Promise.reject(error);
+                        }
+                        if (!originalRequest._retry && (error.response.data.error === 'token_expired' || error.response.data.error === 'token_invalid')) {
+                            originalRequest._retry = true; // Mark the request as retried to prevent infinite loops
+                            try {
+                                const newToken = await this.refreshAuthToken();
+
+                                this.setAuthToken(newToken.token);
+
+                                originalRequest.headers['Authorization'] = `BEARER ${newToken.token}`;
+                                return this.axiosInstance(originalRequest);
+                            } catch (refreshError) {
+                                console.error(refreshError)
+                                return Promise.reject(refreshError);
+                            }
+                        } else if (error.response.data.error === 'refresh_token_expired') {
+                            this.removeAuthToken();
+                            this.handleAuthError(error); // Notify all registered handlers
+                            return Promise.reject(error);
+
+                        }
+                    }
+                } else {
+                    console.error("Network error or no server response");
+                }
+
                 return Promise.reject(error);
             }
         );
+    }
+
+    public async refreshAuthToken(): Promise<LoginResponse> {
+        return this.axiosInstance.post('/token/refresh', null, {
+            headers: {
+                'Authorization': undefined, // This overrides the instance default and removes the header
+            },
+            withCredentials: true
+        }).then(response => response.data);
+    }
+
+    public async logout(): Promise<string> {
+        return this.axiosInstance.post('/token/invalidate', null, {
+            headers: {
+                'Authorization': undefined, // This overrides the instance default and removes the header
+            },
+            withCredentials: true
+        });
     }
 
     public async register(payload: RegisterPayload): Promise<any> {
         return this.axiosInstance.post('/auth/register', payload, {
             headers: {
                 "Content-type": "application/ld+json"
-            }
+            },
         });
-    }
+    } // TODO prendej ten refresh token do cookiny, kdyz se uzivatel prihlasi dostane refresh token v cookine a jwt v response, kdyz vyprsi tak se udela ten request na BE token/refresh s withCredentials: true coz posle refresh token, pak bude potreba taky udelat logout pro smazani ty cookiny
 
     public async login(payload: LoginPayload): Promise<LoginResponse> {
         return this.axiosInstance.post<LoginResponse>('/auth/login', payload, {
             headers: {
                 "Content-type": "application/json"
-            }
+            },
+            withCredentials: true
         }).then(response => response.data);
     }
 
@@ -285,6 +343,7 @@ class ApiService {
             }
         }).then(response => response.data);
     }
+
     public async removeUser(payload: RemoveUserPayload): Promise<string> {
         return this.axiosInstance.post<string>('/removeUser', payload, {
             headers: {
@@ -292,6 +351,7 @@ class ApiService {
             }
         }).then(response => response.data);
     }
+
     public async leaveGroup(payload: LeaveGroupPayload): Promise<string> {
         return this.axiosInstance.post<string>('/leaveGroup', payload, {
             headers: {
@@ -315,6 +375,7 @@ class ApiService {
             }
         }).then(response => response.data);
     }
+
     public async updateKeyStore(payload: PatchKeyStorePayload): Promise<string> {
         return this.axiosInstance.patch<string>('/updateKeyStore', payload, {
             headers: {
@@ -354,6 +415,7 @@ class ApiService {
             }
         }).then(response => response.data);
     }
+
     public async postGeneralCommitMessage(payload: CreateGeneralCommitMessagePayload): Promise<string> {
         return this.axiosInstance.post<string>(`/createGeneralCommitMessage`, payload, {
             headers: {
@@ -361,6 +423,7 @@ class ApiService {
             }
         }).then(response => response.data);
     }
+
     public async createNewGroupItem(payload: CreateGroupItemPayload): Promise<GroupItemResponse> {
         return this.axiosInstance.post<GroupItemResponse>(`/createGroupItem`, payload, {
             headers: {
@@ -368,6 +431,7 @@ class ApiService {
             }
         }).then(response => response.data);
     }
+
     public async getGroupItems(payload: GetGroupItemsPayload): Promise<GetGroupItemCollectionResponse> {
         return this.axiosInstance.post<GetGroupItemCollectionResponse>(`/getGroupItems`, payload, {
             headers: {

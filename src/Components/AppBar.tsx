@@ -208,9 +208,10 @@ const ResponsiveAppBar: FC = observer(function ResponsiveAppBar() {
                                     key={'logout'}
                                     icon={<LogoutIcon/>}
                                     tooltipTitle={'Odhlásit'}
-                                    onClick={() => {
+                                    onClick={async () => {
+                                        await apiService.logout()
                                         clear(); //  authStore's method to clear the session
-                                        storageClear(); // Clearing storage
+                                        await storageClear(); // Clearing storage
                                         apiService.removeAuthToken()
                                         navigate('/login'); // Redirecting to login page
                                     }}
@@ -240,10 +241,11 @@ const ResponsiveAppBar: FC = observer(function ResponsiveAppBar() {
                                 onClose={handleCloseUserMenu}
                             >
                                 {settings.map((setting) => (
-                                    <MenuItem key={setting} onClick={() => {
+                                    <MenuItem key={setting} onClick={async () => {
                                         if (setting === 'Logout') {
+                                            await apiService.logout()
                                             clear(); //  authStore's method to clear the session
-                                            storageClear(); // Clearing storage
+                                            await storageClear(); // Clearing storage
                                             apiService.removeAuthToken() // remove auth header
                                             navigate('/login'); // Redirecting to login page
                                         }
