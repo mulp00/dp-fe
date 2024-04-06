@@ -506,17 +506,17 @@ export const Home = observer(function Home() {
     useEffect(() => {
 
         const loadGroupItems = async () => {
-            const groupItems = await apiService.getGroupItems({groupId: groupStore.groups[selectedGroupIndex].groupId})
+            const groupItems = await apiService.getGroupItems({groupId: groupStore.groups[selectedGroupIndex]?.groupId})
 
             runInAction(() => {
                 groupStore.updateGroupItems(selectedGroupIndex, groupItems)
             });
         }
-        if (isWasmInitialized && groupStore.groups[selectedGroupIndex].groupId !== '') {
+        if (isWasmInitialized && groupStore.groups[selectedGroupIndex]?.groupId !== undefined) {
             loadGroupItems()
         }
         // groupStore.updateGroup()
-    }, [isWasmInitialized, groupStore, groupStore.groups[selectedGroupIndex]]);
+    }, [isWasmInitialized, selectedGroupIndex, groupStore.groups, groupStore.groups[selectedGroupIndex]?.groupItems]);
 
     useEffect(() => {
         const initializeWasm = async () => {
@@ -727,7 +727,7 @@ export const Home = observer(function Home() {
                     <Grid item xs={isMobile ? 12 : 9}>
 
                         <Card sx={{height: '100%', width: '100%'}} elevation={3}>
-                            {groupStore.groups[selectedGroupIndex].groupId !== ""
+                            {groupStore.groups[selectedGroupIndex]?.groupId !== ""
                                 ?
                                 <Box
                                     height="100%"
@@ -751,7 +751,7 @@ export const Home = observer(function Home() {
                                             ))}
                                         </SpeedDial>
                                     </CardContent>
-                                    {groupStore.groups[selectedGroupIndex].groupItems && groupStore.groups[selectedGroupIndex].groupItems.length > 0
+                                    {groupStore.groups[selectedGroupIndex]?.groupItems && groupStore.groups[selectedGroupIndex].groupItems.length > 0
                                         ?
                                         <DataGrid
                                             sx={{borderWidth: 0,
