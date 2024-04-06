@@ -406,7 +406,7 @@ export const Home = observer(function Home() {
             userStore.me.setKeyStore(keyStoreToUpdate)
         });
 
-        groupStore.removeGroup(groupStore.groups[groupIndex]) //TODO index na skupinu a pak zas na index v akci je zbytecny
+        groupStore.removeGroup(groupIndex)
 
         setIsEditGroupModalOpen(false)
 
@@ -431,7 +431,7 @@ export const Home = observer(function Home() {
         })
 
         runInAction(()=>{
-            groupStore.addGroupItemToGroup(groupStore.groups[selectedGroupIndex], response)
+            groupStore.addGroupItemToGroup(selectedGroupIndex, response)
         })
 
         return true
@@ -509,7 +509,7 @@ export const Home = observer(function Home() {
             const groupItems = await apiService.getGroupItems({groupId: groupStore.groups[selectedGroupIndex].groupId})
 
             runInAction(() => {
-                groupStore.updateGroupItems(groupStore.groups[selectedGroupIndex], groupItems)
+                groupStore.updateGroupItems(selectedGroupIndex, groupItems)
             });
         }
         if (isWasmInitialized && groupStore.groups[selectedGroupIndex].groupId !== '') {
