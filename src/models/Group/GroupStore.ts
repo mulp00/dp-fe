@@ -23,7 +23,7 @@ export const GroupStoreModel = types
             if (groupIndex !== -1) {
                 applySnapshot(self.groups[groupIndex], updatedGroupData);
             }
-            return self.groups[groupIndex]
+            return groupIndex
         },
         removeGroup(group: GroupSnapshotIn){
             try{
@@ -49,6 +49,9 @@ export const GroupStoreModel = types
                 self.groups[groupIndex].addGroupItem(item)
             }
             return self.groups[groupIndex]
+        },
+        getGroupIndex(group: GroupSnapshotIn){
+            return  self.groups.findIndex(g => g.groupId === group.groupId);
         }
     })) // eslint-disable-line @typescript-eslint/no-unused-vars
 

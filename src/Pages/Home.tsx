@@ -52,17 +52,47 @@ export const Home = observer(function Home() {
     const [isCreateGroupModalOpen, setIsCreateGroupModalOpen] = useState<boolean>(false)
     const [isEditGroupModalOpen, setIsEditGroupModalOpen] = useState<boolean>(false)
     const [isConfirmErrorUserAddModalOpen, setIsConfirmErrorUserAddModalOpen] = useState<boolean>(false)
-    const [selectedGroup, setSelectedGroup] = useState<GroupSnapshotIn>(createGroupDefaultModel().create())
-    const [editedGroup, setEditedGroup] = useState<GroupSnapshotIn>(createGroupDefaultModel().create())
+    const [selectedGroupIndex, setSelectedGroupIndex] = useState<number>(0)
+    const [editedGroupIndex, setEditedGroupIndex] = useState<number>(0)
     const [isAddGroupItemModalOpen, setIsAddGroupItemModalOpen] = useState<boolean>(false)
     const [addItemType, setAddItemType] = useState<string>("")
 
-    const [feedBack, setFeedback] = useState<{type: "success"|"error", message: string}|null|undefined>()
+    const [feedBack, setFeedback] = useState<{ type: "success" | "error", message: string } | null | undefined>()
 
+    // string to Uint8Array
     function stringToUint8Array(inputString: string): Uint8Array {
         const numberArray = inputString.split(',').map(Number);
         return new Uint8Array(numberArray);
     }
+
+    // Text to ArrayBuffer
+    const str2ab = (str: string): ArrayBuffer => {
+        const encoder = new TextEncoder();
+        return encoder.encode(str);
+    };
+
+    // ArrayBuffer to base64 string
+    const ab2base64 = (buffer: ArrayBuffer): string => {
+        const array = Array.from(new Uint8Array(buffer));
+        return btoa(String.fromCharCode(...array));
+    };
+
+    // Base64 string to ArrayBuffer
+    const base64ab = (base64: string): ArrayBuffer => {
+        const binary_string = window.atob(base64);
+        const len = binary_string.length;
+        const bytes = new Uint8Array(len);
+        for (let i = 0; i < len; i++) {
+            bytes[i] = binary_string.charCodeAt(i);
+        }
+        return bytes.buffer;
+    };
+
+    // ArrayBuffer to string
+    const ab2str = (buffer: ArrayBuffer): string => {
+        const decoder = new TextDecoder();
+        return decoder.decode(buffer);
+    };
 
     const loadGroups = async () => {
         try {
@@ -159,12 +189,12 @@ export const Home = observer(function Home() {
         }
     }
 
-    const addUser = async (member: MemberSnapshotIn, group: GroupSnapshotIn) => {
+    const addUser = async (member: MemberSnapshotIn, groupIndex: number) => {
         try {
             const provider = Provider.deserialize(userStore.me.keyStore);
             const identity = Identity.deserialize(provider, userStore.me.serializedIdentity);
 
-            const deserializedGroup = MlsGroup.deserialize(group.serializedGroup);
+            const deserializedGroup = MlsGroup.deserialize(groupStore.groups[groupIndex].serializedGroup);
 
             const deserializedKeyPackage = KeyPackage.deserialize(member.keyPackage)
 
@@ -190,7 +220,7 @@ export const Home = observer(function Home() {
                     welcomeMessage: add_msg.welcome.toString(),
                     commitMessage: add_msg.commit.toString(),
                     memberId: member.id,
-                    groupId: group.groupId,
+                    groupId: groupStore.groups[groupIndex].groupId,
                     ratchetTree: serializedRatchetTree,
                 });
             } catch (error) {
@@ -201,16 +231,16 @@ export const Home = observer(function Home() {
             let updateSerializedUserGroupResponse;
             try {
                 updateSerializedUserGroupResponse = await apiService.updateSerializedUserGroup({
-                    serializedUserGroupId: group.serializedUserGroupId,
+                    serializedUserGroupId: groupStore.groups[groupIndex].serializedUserGroupId,
                     serializedUserGroup: deserializedGroup.serialize(),
-                    epoch: group.epoch + 1,
+                    epoch: groupStore.groups[groupIndex].epoch + 1,
                 });
             } catch (error) {
                 console.error("Failed to update serialized user group", error);
                 return false;
             }
 
-            setEditedGroup(groupStore.updateGroup(updateSerializedUserGroupResponse));
+            setEditedGroupIndex(groupStore.updateGroup(updateSerializedUserGroupResponse));
 
 
             provider.free();
@@ -286,12 +316,12 @@ export const Home = observer(function Home() {
         }
     }
 
-    const removeUser = async (member: MemberSnapshotIn, group: GroupSnapshotIn) => {
+    const removeUser = async (member: MemberSnapshotIn, groupIndex: number) => {
         try {
             const provider = Provider.deserialize(userStore.me.keyStore);
             const identity = Identity.deserialize(provider, userStore.me.serializedIdentity);
 
-            const deserializedGroup = MlsGroup.deserialize(group.serializedGroup);
+            const deserializedGroup = MlsGroup.deserialize(groupStore.groups[groupIndex].serializedGroup);
 
             const deserializedRemovedMemberKeyPackage = KeyPackage.deserialize(member.keyPackage)
 
@@ -308,9 +338,9 @@ export const Home = observer(function Home() {
             try {
                 await apiService.removeUser({
                     message: add_msg.commit.toString(),
-                    groupId: group.groupId,
+                    groupId: groupStore.groups[groupIndex].groupId,
                     userId: member.id,
-                    epoch: group.epoch
+                    epoch: groupStore.groups[groupIndex].epoch
                 });
             } catch (error) {
                 console.error("Failed to remove user", error);
@@ -328,16 +358,16 @@ export const Home = observer(function Home() {
             let updateSerializedUserGroupResponse;
             try {
                 updateSerializedUserGroupResponse = await apiService.updateSerializedUserGroup({
-                    serializedUserGroupId: group.serializedUserGroupId,
+                    serializedUserGroupId: groupStore.groups[groupIndex].serializedUserGroupId,
                     serializedUserGroup: deserializedGroup.serialize(),
-                    epoch: group.epoch + 1,
+                    epoch: groupStore.groups[groupIndex].epoch + 1,
                 });
             } catch (error) {
                 console.error("Failed to update serialized user group", error);
                 return false;
             }
 
-            setEditedGroup(groupStore.updateGroup(updateSerializedUserGroupResponse));
+            setEditedGroupIndex(groupStore.updateGroup(updateSerializedUserGroupResponse));
 
 
             provider.free();
@@ -351,11 +381,11 @@ export const Home = observer(function Home() {
             return false;
         }
     }
-    const leaveGroup = async (group: GroupSnapshotIn) => {
+    const leaveGroup = async (groupIndex: number) => {
         const provider = Provider.deserialize(userStore.me.keyStore);
         const identity = Identity.deserialize(provider, userStore.me.serializedIdentity);
 
-        const deserializedGroup = MlsGroup.deserialize(group.serializedGroup);
+        const deserializedGroup = MlsGroup.deserialize(groupStore.groups[groupIndex].serializedGroup);
 
         const leave_msg = deserializedGroup.leave(
             provider,
@@ -364,8 +394,8 @@ export const Home = observer(function Home() {
 
         await apiService.leaveGroup({
             message: leave_msg.commit.toString(),
-            groupId: group.groupId,
-            epoch: group.epoch
+            groupId: groupStore.groups[groupIndex].groupId,
+            epoch: groupStore.groups[groupIndex].epoch
         });
 
         deserializedGroup.merge_pending_commit(provider)
@@ -376,7 +406,7 @@ export const Home = observer(function Home() {
             userStore.me.setKeyStore(keyStoreToUpdate)
         });
 
-        groupStore.removeGroup(group)
+        groupStore.removeGroup(groupStore.groups[groupIndex]) //TODO index na skupinu a pak zas na index v akci je zbytecny
 
         setIsEditGroupModalOpen(false)
 
@@ -387,34 +417,106 @@ export const Home = observer(function Home() {
         return true;
     }
 
-    useEffect(() => {
+    const createNewGroupItem = async (groupIndex: number, groupItem: GroupItemSnapshotIn) => {
 
-        const loadGroupItems = async () => {
-            const groupItems = await apiService.getGroupItems({groupId: selectedGroup.groupId})
-
-            runInAction(() => {
-                groupStore.updateGroupItems(selectedGroup, groupItems)
-            });
-        }
-        if (isWasmInitialized && selectedGroup.groupId !== '') {
-            loadGroupItems()
-        }
-        // groupStore.updateGroup()
-    }, [isWasmInitialized, groupStore, selectedGroup]);
-
-    const createNewGroupItem = async (group: GroupSnapshotIn, groupItem: GroupItemSnapshotIn) => {
+        const {ciphertext, iv} = await encryptData(groupIndex, groupItem.content)
 
         const response = await apiService.createNewGroupItem({
-            groupId: group.groupId,
+            groupId: groupStore.groups[groupIndex].groupId,
             name: groupItem.name,
-            content: groupItem.content,
-            type: groupItem.type
+            description: groupItem.description,
+            content: ciphertext,
+            type: groupItem.type,
+            iv: iv,
         })
 
-        groupStore.addGroupItemToGroup(selectedGroup, response)
+        runInAction(()=>{
+            groupStore.addGroupItemToGroup(groupStore.groups[selectedGroupIndex], response)
+        })
 
         return true
     }
+
+    const encryptData = async (groupIndex: number, data: string):Promise<{ciphertext: string, iv: string}> => {
+
+        const provider = Provider.deserialize(userStore.me.keyStore);
+
+        const deserializedGroup = MlsGroup.deserialize(groupStore.groups[groupIndex].serializedGroup);
+
+        const secret = deserializedGroup.export_key(
+            provider,
+            'encryptionKey',
+            new Uint8Array(32).fill(0x30),
+            32
+        )
+
+        const aesKey = await importAesKey(secret);
+
+        const { ciphertext, iv } = await encryptStringWithAesCtr(data, aesKey);
+
+        provider.free()
+        deserializedGroup.free()
+
+        return {ciphertext, iv}
+
+    }
+
+    const importAesKey = async (rawKey: Uint8Array): Promise<CryptoKey> => {
+        return window.crypto.subtle.importKey(
+            "raw", // Raw format of the key
+            rawKey, // The key as Uint8Array
+            {   // Algorithm details
+                name: "AES-CTR"
+            },
+            false, // Whether the key is extractable (i.e., can be used in exportKey)
+            ["encrypt", "decrypt"] // Key usages
+        );
+    };
+    const encryptStringWithAesCtr = async (plaintext: string, key: CryptoKey): Promise<{ ciphertext: string; iv: string }> => {
+        const iv = window.crypto.getRandomValues(new Uint8Array(16));
+        const encodedText = str2ab(plaintext);
+        const encryptedData = await window.crypto.subtle.encrypt(
+            {
+                name: "AES-CTR",
+                counter: iv,
+                length: 128,
+            },
+            key,
+            encodedText
+        );
+        return {
+            ciphertext: ab2base64(encryptedData),
+            iv: ab2base64(iv)
+        };
+    };
+
+    const decryptStringWithAesCtr = async (ciphertext: string, key: CryptoKey, iv: string): Promise<string> => {
+        const decryptedData = await window.crypto.subtle.decrypt(
+            {
+                name: "AES-CTR",
+                counter: base64ab(iv), // The counter (IV) must be the same as the encryption
+                length: 128,
+            },
+            key,
+            base64ab(ciphertext)
+        );
+        return ab2str(decryptedData);
+    };
+
+    useEffect(() => {
+
+        const loadGroupItems = async () => {
+            const groupItems = await apiService.getGroupItems({groupId: groupStore.groups[selectedGroupIndex].groupId})
+
+            runInAction(() => {
+                groupStore.updateGroupItems(groupStore.groups[selectedGroupIndex], groupItems)
+            });
+        }
+        if (isWasmInitialized && groupStore.groups[selectedGroupIndex].groupId !== '') {
+            loadGroupItems()
+        }
+        // groupStore.updateGroup()
+    }, [isWasmInitialized, groupStore, groupStore.groups[selectedGroupIndex]]);
 
     useEffect(() => {
         const initializeWasm = async () => {
@@ -442,10 +544,6 @@ export const Home = observer(function Home() {
         }
     }, [isWasmInitialized, initialLoadDone]);
 
-    //
-    // const rows = [
-    //     {id: 1, type: 'card', name: 'Firemní ČSOB'},
-    // ];
 
     const actions = [
         {
@@ -493,6 +591,7 @@ export const Home = observer(function Home() {
             }
         },
         {field: 'name', headerName: 'Název', width: 130, flex: 1},
+        {field: 'description', headerName: 'Popis', width: 130, flex: 1},
         {
             field: 'details',
             headerName: 'Detail',
@@ -530,8 +629,10 @@ export const Home = observer(function Home() {
                     {groupStore.groups.map((group, index) => (
                         <React.Fragment key={group.groupId /* Use group.id instead of index for key if possible */}>
                             <ListItemButton
-                                selected={selectedGroup.groupId === group.groupId}
-                                onClick={() => setSelectedGroup(group)}
+                                selected={groupStore.groups[selectedGroupIndex].groupId === group.groupId}
+                                onClick={() => {
+                                    setSelectedGroupIndex(groupStore.getGroupIndex(group))
+                                }}
                             >
                                 <Container>
                                     <Typography variant="body2">{group.name}</Typography>
@@ -541,7 +642,7 @@ export const Home = observer(function Home() {
                                 </Container>
                                 <IconButton onClick={(event) => {
                                     event.stopPropagation(); // Prevent ListItem click when IconButton is clicked
-                                    setEditedGroup(group);
+                                    setEditedGroupIndex(groupStore.getGroupIndex(group));
                                     setIsEditGroupModalOpen(true);
                                 }}>
                                     <MoreVertIcon/>
@@ -571,12 +672,12 @@ export const Home = observer(function Home() {
                 isOpen={isCreateGroupModalOpen}
                 handleClose={() => setIsCreateGroupModalOpen(false)}
                 handleSubmit={createGroup}
-                onFeedback={(type, message)=>setFeedback({type, message})}
+                onFeedback={(type, message) => setFeedback({type, message})}
             />
             <EditGroupModal
                 isOpen={isEditGroupModalOpen}
                 handleClose={() => setIsEditGroupModalOpen(false)}
-                group={editedGroup}
+                groupIndex={editedGroupIndex}
                 me={userStore.me}
                 handleAddUser={addUser}
                 handleRemoveUser={removeUser}
@@ -585,10 +686,10 @@ export const Home = observer(function Home() {
             <AddItemModal
                 isOpen={isAddGroupItemModalOpen}
                 handleClose={() => setIsAddGroupItemModalOpen(false)}
-                group={selectedGroup}
+                groupIndex={selectedGroupIndex}
                 onItemCreate={createNewGroupItem}
                 type={addItemType}
-                onFeedback={(type, message)=>setFeedback({type, message})}
+                onFeedback={(type, message) => setFeedback({type, message})}
             />
             <Box
                 sx={{
@@ -626,7 +727,7 @@ export const Home = observer(function Home() {
                     <Grid item xs={isMobile ? 12 : 9}>
 
                         <Card sx={{height: '100%', width: '100%'}} elevation={3}>
-                            {selectedGroup.groupId !== ""
+                            {groupStore.groups[selectedGroupIndex].groupId !== ""
                                 ?
                                 <Box
                                     height="100%"
@@ -650,12 +751,12 @@ export const Home = observer(function Home() {
                                             ))}
                                         </SpeedDial>
                                     </CardContent>
-                                    {selectedGroup.groupItems && selectedGroup.groupItems.length > 0
+                                    {groupStore.groups[selectedGroupIndex].groupItems && groupStore.groups[selectedGroupIndex].groupItems.length > 0
                                         ?
                                         <DataGrid
                                             sx={{borderWidth: 0}}
-                                            rows={selectedGroup.groupItems?.map((groupItem) => {
-                                                return {id: groupItem.id, type: groupItem.type, name: groupItem.name}
+                                            rows={groupStore.groups[selectedGroupIndex].groupItems?.map((groupItem) => {
+                                                return {id: groupItem.id, type: groupItem.type, name: groupItem.name, description: groupItem.description}
                                             })}
                                             columns={columns}
                                             autoHeight
@@ -713,7 +814,7 @@ export const Home = observer(function Home() {
                 </Grid>
             </Box>
             <Snackbar open={!!feedBack} autoHideDuration={6000} onClose={() => setFeedback(null)}>
-                <Alert onClose={() => setFeedback(null)} severity={feedBack?.type} sx={{ width: '100%' }}>
+                <Alert onClose={() => setFeedback(null)} severity={feedBack?.type} sx={{width: '100%'}}>
                     {feedBack?.message}
                 </Alert>
             </Snackbar>

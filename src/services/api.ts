@@ -152,17 +152,21 @@ export interface CreateGeneralCommitMessagePayload {
 
 export interface CreateGroupItemPayload {
     name: string;
+    description: string;
     groupId: string;
     type: string;
     content: string;
+    iv: string;
 }
 
 export interface GroupItemResponse {
     id: string;
     name: string;
+    description: string;
     groupId: string;
     type: string;
     content: string;
+    iv:string;
 }
 
 export type GetGroupItemCollectionResponse = [

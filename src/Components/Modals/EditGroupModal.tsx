@@ -15,11 +15,11 @@ import {runInAction} from "mobx";
 export type EditGroupModalProps = {
     isOpen: boolean;
     handleClose: () => void;
-    group: GroupSnapshotIn
+    groupIndex: number;
     me: User
-    handleAddUser: (member: MemberSnapshotIn, group: GroupSnapshotIn) => Promise<boolean>
-    handleRemoveUser: (member: MemberSnapshotIn, group: GroupSnapshotIn) => Promise<boolean>
-    handleLeaveGroup: (group: GroupSnapshotIn) => Promise<boolean>
+    handleAddUser: (member: MemberSnapshotIn, groupIndex: number) => Promise<boolean>
+    handleRemoveUser: (member: MemberSnapshotIn, groupIndex: number) => Promise<boolean>
+    handleLeaveGroup: (groupIndex: number) => Promise<boolean>
 };
 
 export const EditGroupModal = observer(function EditGroupModal(props: EditGroupModalProps) {
@@ -41,7 +41,7 @@ export const EditGroupModal = observer(function EditGroupModal(props: EditGroupM
         if (value.trim()) {
             const users = await apiService.getUsersByEmail({email: value})
             const filteredUsers = users.filter(user =>
-                !props.group.users?.some(groupUser => groupUser.email === user.email)
+                !groupStore.groups[props.groupIndex].users?.some(groupUser => groupUser.email === user.email)
             );
 
             setFoundUsers(filteredUsers);
@@ -54,14 +54,14 @@ export const EditGroupModal = observer(function EditGroupModal(props: EditGroupM
 
     const handleAddButtonClick = async () => {
         if (selectedUser) {
-            await props.handleAddUser(selectedUser, props.group);
+            await props.handleAddUser(selectedUser, props.groupIndex);
             setSelectedUser(null)
         }
     };
 
     const handleRemoveUserConfirmation = async () => {
         if(userToRemove) {
-            const success = await props.handleRemoveUser(userToRemove, props.group);
+            const success = await props.handleRemoveUser(userToRemove, props.groupIndex);
             if(success) {
                 // Optionally close the modal and reset state here
                 setIsRemoveUserFromGroupModalOpen(false);
@@ -85,15 +85,15 @@ export const EditGroupModal = observer(function EditGroupModal(props: EditGroupM
             const provider = Provider.deserialize(userStore.me.keyStore)
             const identity = Identity.deserialize(provider, userStore.me.serializedIdentity);
 
-            const deserializedGroup = MlsGroup.deserialize(props.group.serializedGroup);
+            const deserializedGroup = MlsGroup.deserialize(groupStore.groups[props.groupIndex].serializedGroup);
 
             const updateKeyMessage = deserializedGroup.update_key_package(provider, identity)
 
             try {
                 await apiService.postGeneralCommitMessage({
-                    groupId: props.group.groupId,
+                    groupId: groupStore.groups[props.groupIndex].groupId,
                     message: updateKeyMessage.commit.toString(),
-                    epoch: props.group.epoch
+                    epoch: groupStore.groups[props.groupIndex].epoch
                 })
             } catch (error) {
                 console.error("Failed to leave group", error);
@@ -111,9 +111,9 @@ export const EditGroupModal = observer(function EditGroupModal(props: EditGroupM
             let updateSerializedUserGroupResponse;
             try {
                 updateSerializedUserGroupResponse = await apiService.updateSerializedUserGroup({
-                    serializedUserGroupId: props.group.serializedUserGroupId,
+                    serializedUserGroupId: groupStore.groups[props.groupIndex].serializedUserGroupId,
                     serializedUserGroup: deserializedGroup.serialize(),
-                    epoch: props.group.epoch + 1,
+                    epoch: groupStore.groups[props.groupIndex].epoch + 1,
                 });
             } catch (error) {
                 console.error("Failed to update serialized user group", error);
@@ -158,7 +158,7 @@ export const EditGroupModal = observer(function EditGroupModal(props: EditGroupM
             headerName: 'Akce',
             width: 150,
             renderCell: (params: GridRenderCellParams<Member>) => (
-                params.value.email === props.group?.creator.email ?
+                params.value.email === groupStore.groups[props.groupIndex]?.creator.email ?
                     <Button variant="outlined" disabled color="error">Zakázáno</Button> :
                     params.value.email === props.me.email ?
                         <Button variant="outlined" onClick={() => setIsLeaveGroupModalOpen(true)}
@@ -172,7 +172,7 @@ export const EditGroupModal = observer(function EditGroupModal(props: EditGroupM
         }
     ];
 
-    const rows = props.group?.users?.map(user => ({
+    const rows = groupStore.groups[props.groupIndex]?.users?.map(user => ({
         id: user.email,
         user: user,
         action: user // The whole user object is passed for rendering logic in the `action` column
@@ -196,7 +196,7 @@ export const EditGroupModal = observer(function EditGroupModal(props: EditGroupM
                 <ConfirmModal
                     isOpen={isLeaveGroupModalOpen}
                     handleClose={() => setIsLeaveGroupModalOpen(false)}
-                    handleSubmit={() => props.handleLeaveGroup(props.group)}
+                    handleSubmit={() => props.handleLeaveGroup(props.groupIndex)}
                     title="Opustit skupinu"
                     text="Opravdu checete opsutit skupinu? Nebude znovu možné se do ní přidat! Pokud se budete chtít do skupiny znovu přidat, požádejte jiného člena o odebrání."
                     confirmText="Opustit"

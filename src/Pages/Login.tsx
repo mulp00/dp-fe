@@ -1,12 +1,24 @@
 import React, {useState} from 'react';
-import {Box, Button, Container, TextField, Typography} from '@mui/material';
-import api, {LoginPayload} from "../services/api"; // Ensure you have a login method here
+import {
+    Box,
+    Button,
+    Container, FormControl,
+    IconButton,
+    InputAdornment,
+    InputLabel,
+    OutlinedInput,
+    TextField,
+    Typography
+} from '@mui/material';
+import api, {LoginPayload} from "../services/api";
 import * as mfkdf from '../utils/crypto/mfkdf/mfkdf.min'
 import {useStores} from "../models/helpers/useStores";
 import {useApiService} from "../hooks";
 import {useNavigate} from "react-router-dom";
 import {observer} from "mobx-react";
 import {applySnapshot} from "mobx-state-tree";
+import Visibility from '@mui/icons-material/Visibility';
+import VisibilityOff from '@mui/icons-material/VisibilityOff';
 
 export interface LoginState {
     email: string;
@@ -18,6 +30,15 @@ export const Login = observer(function Login() {
     const {authStore, userStore} = useStores()
     const apiService = useApiService()
     const navigate = useNavigate();
+
+    const [showPassword, setShowPassword] = React.useState(false);
+
+    const handleClickShowPassword = () => setShowPassword((show) => !show);
+
+    const handleMouseDownPassword = (event: React.MouseEvent<HTMLButtonElement>) => {
+        event.preventDefault();
+    };
+
 
     const [state, setState] = useState<LoginState>({
         email: 'test@email.com',
@@ -68,42 +89,57 @@ export const Login = observer(function Login() {
             <Container component="main" maxWidth="xs">
                 <Typography component="h1" variant="h5">Login</Typography>
                 <form onSubmit={handleSubmit}>
-                <TextField
-                    variant="outlined"
-                    margin="normal"
-                    required
-                    fullWidth
-                    label="Email Address"
-                    name="email"
-                    autoComplete="email"
-                    autoFocus
-                    value={state.email}
-                    onChange={handleChange}
-                />
-                <TextField
-                    variant="outlined"
-                    margin="normal"
-                    required
-                    fullWidth
-                    label="Password"
-                    type="password"
-                    name="password"
-                    value={state.password}
-                    onChange={handleChange}
-                />
-                <TextField
-                    variant="outlined"
-                    margin="normal"
-                    required
-                    fullWidth
-                    label="TOTP Code"
-                    name="totp"
-                    value={state.totp}
-                    onChange={handleChange}
-                />
-                <Button type="submit" fullWidth variant="contained" color="primary">
-                    Login
-                </Button>
+                    <TextField
+                        variant="outlined"
+                        margin="normal"
+                        required
+                        fullWidth
+                        label="Email Address"
+                        name="email"
+                        autoComplete="email"
+                        autoFocus
+                        value={state.email}
+                        onChange={handleChange}
+                    />
+                    <FormControl fullWidth margin="normal">
+                        <InputLabel htmlFor="password">Password</InputLabel>
+                        <OutlinedInput
+                            id="password"
+                            required
+                            fullWidth
+                            label="Password"
+                            name="password"
+                            value={state.password}
+                            onChange={handleChange}
+                            type={showPassword ? 'text' : 'password'}
+                            endAdornment={
+                                <InputAdornment position="end">
+                                    <IconButton
+                                        aria-label="toggle password visibility"
+                                        onClick={handleClickShowPassword}
+                                        onMouseDown={handleMouseDownPassword}
+                                        edge="end"
+                                    >
+                                        {showPassword ? <VisibilityOff/> : <Visibility/>}
+                                    </IconButton>
+                                </InputAdornment>
+                            }
+                        />
+                    </FormControl>
+
+                    <TextField
+                        variant="outlined"
+                        margin="normal"
+                        required
+                        fullWidth
+                        label="TOTP Code"
+                        name="totp"
+                        value={state.totp}
+                        onChange={handleChange}
+                    />
+                    <Button type="submit" fullWidth variant="contained" color="primary">
+                        Login
+                    </Button>
                 </form>
             </Container>
         </Box>

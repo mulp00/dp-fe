@@ -6,18 +6,23 @@ export const GroupItemModel = types
     .props({
         id: types.string,
         name: types.string,
+        description: types.string,
         groupId: types.string,
         type: types.string,
         content: types.string,
+        iv: types.string,
     })
     .actions(withSetPropAction)
     .views((self) => ({})) // eslint-disable-line @typescript-eslint/no-unused-vars
     .actions((self) => ({
         clear() {
+            self.id = ""
             self.name = ""
+            self.description = ""
             self.groupId = ""
             self.type = ""
             self.content = ""
+            self.iv = ""
         },
     })) // eslint-disable-line @typescript-eslint/no-unused-vars
 
@@ -32,8 +37,10 @@ export interface GroupItemSnapshotIn extends SnapshotIn<typeof GroupItemModel> {
 
 export const createGroupItemDefaultModel = () => types.optional(GroupItemModel, {
     id: "",
+    name: "",
+    description: "",
     groupId: "",
-    content: "",
     type: "",
-    name: ""
+    content: "",
+    iv: "",
 })
