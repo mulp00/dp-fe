@@ -157,6 +157,18 @@ export interface CreateGroupItemPayload {
     type: string;
     content: string;
     iv: string;
+    epoch: number;
+}
+
+export interface UpdateGroupItemPayload {
+    itemId: string;
+    name: string;
+    description: string;
+    groupId: string;
+    type: string;
+    content: string;
+    iv: string;
+    epoch: number;
 }
 
 export interface GroupItemResponse {
@@ -431,6 +443,13 @@ class ApiService {
         return this.axiosInstance.post<GroupItemResponse>(`/createGroupItem`, payload, {
             headers: {
                 "Content-type": "application/ld+json"
+            }
+        }).then(response => response.data);
+    }
+    public async updateGroupItem(payload: UpdateGroupItemPayload): Promise<GroupItemResponse> {
+        return this.axiosInstance.patch<GroupItemResponse>(`/updateGroupItem`, payload, {
+            headers: {
+                "Content-type": "application/merge-patch+json"
             }
         }).then(response => response.data);
     }

@@ -11,6 +11,7 @@ export const GroupItemModel = types
         type: types.string,
         content: types.string,
         iv: types.string,
+        decrypted: types.boolean
     })
     .actions(withSetPropAction)
     .views((self) => ({})) // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -43,4 +44,5 @@ export const createGroupItemDefaultModel = () => types.optional(GroupItemModel, 
     type: "",
     content: "",
     iv: "",
+    decrypted: false,
 })

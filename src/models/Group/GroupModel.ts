@@ -1,4 +1,4 @@
-import {Instance, SnapshotIn, SnapshotOut, types} from "mobx-state-tree";
+import {applySnapshot, Instance, SnapshotIn, SnapshotOut, types} from "mobx-state-tree";
 import {withSetPropAction} from "../helpers/withSetPropAction";
 import {createMemberDefaultModel, MemberModel} from "../User/MemberModel";
 import {GroupItemModel, GroupItemSnapshotIn} from "../GroupItem/GroupItemModel";
@@ -44,7 +44,20 @@ export const GroupModel = types
         },
         addGroupItem(item: GroupItemSnapshotIn){
             self.groupItems.push(item)
-        }
+        },
+        getGroupItemIndex(groupItemId: string){
+            return  self.groupItems.findIndex(g => g.id === groupItemId);
+        },
+        setGroupItems(groupItems: GroupItemSnapshotIn[]){
+            applySnapshot(self.groupItems, groupItems)
+        },
+        updateGroupItem( groupItem: GroupItemSnapshotIn){
+            const groupItemIndex = self.groupItems.findIndex(g => g.id === groupItem.id);
+            if (groupItemIndex !== -1) {
+                applySnapshot(self.groupItems[groupItemIndex], groupItem);
+            }
+            return self.groupItems[groupItemIndex]
+        },
     })) // eslint-disable-line @typescript-eslint/no-unused-vars
 
 export interface Group extends Instance<typeof GroupModel> {

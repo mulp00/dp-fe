@@ -1,105 +1,64 @@
-import React, {useEffect, useState} from 'react';
-import {Box, Button, CircularProgress, Modal, TextField, Typography} from '@mui/material';
-import {z} from 'zod';
-import {GroupSnapshotIn} from "../../models/Group/GroupModel";
-import {GroupItemSnapshotIn} from "../../models/GroupItem/GroupItemModel";
-import {useStores} from "../../models/helpers/useStores";
+import React, { useEffect, useState } from 'react';
+import { Box, Button, CircularProgress, Modal, TextField, Typography } from '@mui/material';
+import { GroupItemSnapshotIn } from "../../models/GroupItem/GroupItemModel";
+import { cardSchema, loginSchema } from "./AddItemModal";
+import { useStores } from "../../models/helpers/useStores";
 
-interface AddItemModalProps {
+interface ItemDetailModalProps {
     isOpen: boolean;
     handleClose: () => void;
+    itemIndex: number;
     groupIndex: number;
-    type: string;
-    onItemCreate: (groupIndex: number, groupItem: GroupItemSnapshotIn) => Promise<boolean>;
+    onUpdateItem: (itemDetail: GroupItemSnapshotIn) => Promise<boolean>;
     onFeedback: (type: 'success' | 'error', message: string) => void;
 }
 
-const loginSchema = z.object({
-    username: z.string().min(1, "Uživatelské jméno je povinné"),
-    password: z.string().min(1, "Heslo je povinné"),
-    notes: z.string().optional(),
-    description: z.string().optional(),
-});
-
-const cardSchema = z.object({
-    cardNumber: z.string().min(15, "Číslo karty je povinné, musí být nejméně 15 čísel dlouhé"),
-    expiration: z.string().min(1, "Datum expirace je povinné"),
-    cvv: z.string().min(1, "CVV je povinné"),
-    cardholderName: z.string().min(1, "Jméno držitele karty je povinné"),
-    notes: z.string().optional(),
-    description: z.string().optional(),
-});
-
-export const AddItemModal: React.FC<AddItemModalProps> = ({
-                                                              isOpen,
-                                                              handleClose,
-                                                              groupIndex,
-                                                              type,
-                                                              onItemCreate,
-                                                              onFeedback
-                                                          }) => {
-    const [name, setName] = useState('');
-    const [description, setDescription] = useState('');
-    const [loginDetails, setLoginDetails] = useState({username: '', password: '', notes: '', description: ''});
-    const [cardDetails, setCardDetails] = useState({
-        cardNumber: '',
-        expiration: '',
-        cvv: '',
-        cardholderName: '',
-        notes: '',
-        description: ''
-    });
+export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
+                                                                    isOpen,
+                                                                    handleClose,
+                                                                    itemIndex,
+                                                                    groupIndex,
+                                                                    onUpdateItem,
+                                                                    onFeedback,
+                                                                }) => {
+    const [details, setDetails] = useState<any>({});
     const [loading, setLoading] = useState(false);
-    const [errors, setErrors] = useState<Record<string, string>>({});
-    const {groupStore}= useStores()
+    const [errors, setErrors] = useState<Record<string, string> | null>({});
+    const { groupStore } = useStores();
+
+    useEffect(() => {
+        if (isOpen) {
+            try {
+                const groupItem = groupStore.groups[groupIndex]?.groupItems[itemIndex];
+                const parsedContent = groupItem?.content ? JSON.parse(groupItem.content) : {};
+                setDetails({
+                    ...parsedContent,
+                    name: groupItem?.name,
+                    description: groupItem?.description
+                });
+            } catch (error) {
+                console.error("Failed to parse item content", error);
+                onFeedback('error', 'Chyba při načítání detailů položky.');
+            }
+        }
+    }, [isOpen, groupIndex, itemIndex, groupStore.groups]);
 
     useEffect(() => {
         if (!isOpen) {
-            setName('');
-            setDescription('');
-            setLoginDetails({username: '', password: '', notes: '', description: ''});
-            setCardDetails({
-                cardNumber: '',
-                expiration: '',
-                cvv: '',
-                cardholderName: '',
-                notes: '',
-                description: ''
-            });
+            setErrors(null)
+            setDetails({});
         }
     }, [isOpen]);
-
-    useEffect(() => {
-        if (type === 'login') {
-            setDescription(loginDetails.username);
-            setLoginDetails(prev => ({...prev, description: loginDetails.username}));
-        } else if (type === 'card' && cardDetails.cardNumber) {
-            // Anonymize card number for description
-            const anonymizedCardNumber = cardDetails.cardNumber.replace(/.(?=.{4})/g, '*');
-            setDescription(anonymizedCardNumber);
-            setCardDetails(prev => ({...prev, description: anonymizedCardNumber}));
-        }
-    }, [loginDetails.username, cardDetails.cardNumber, type]);
 
     const handleSubmit = async () => {
         setLoading(true);
         setErrors({}); // Reset errors before validation
 
-        let validationSchema;
-        let formData;
-
-        if (type === 'login') {
-            validationSchema = loginSchema;
-            formData = {...loginDetails, name, description};
-        } else { // 'card'
-            validationSchema = cardSchema;
-            formData = {...cardDetails, name, description};
-        }
-
-        const result = validationSchema.safeParse(formData);
-        if (!result.success) {
+        const schema = groupStore.groups[groupIndex].groupItems[itemIndex].type === 'login' ? loginSchema : cardSchema;
+        const validationResult = schema.safeParse(details);
+        if (!validationResult.success) {
             // Accumulate all errors into the errors state
-            const newErrors = result.error.issues.reduce((acc, curr) => {
+            const newErrors = validationResult.error.issues.reduce((acc, curr) => {
                 acc[curr.path[0]] = curr.message;
                 return acc;
             }, {} as Record<string, string>);
@@ -109,70 +68,29 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
         }
 
         try {
-            let content = '';
-            let descriptionToUse = '';
-
-            if (type === 'login') {
-                const parsedLoginDetails = loginSchema.parse({...loginDetails, description: description});
-                content = JSON.stringify(parsedLoginDetails);
-                descriptionToUse = description; // Directly use the description state
-            } else if (type === 'card') {
-                const anonymizedCardNumber = cardDetails.cardNumber.replace(/.(?=.{4})/g, '*');
-                const parsedCardDetails = cardSchema.parse({...cardDetails, description: anonymizedCardNumber});
-                content = JSON.stringify(parsedCardDetails);
-                descriptionToUse = anonymizedCardNumber;
-            }
-
-            const item: GroupItemSnapshotIn = {
-                name,
-                groupId: groupStore.groups[groupIndex].groupId,
-                type,
-                content,
-                id: "",
-                description: descriptionToUse,
-                iv: "",
+            const updatedItem: GroupItemSnapshotIn = {
+                ...groupStore.groups[groupIndex].groupItems[itemIndex],
+                content: JSON.stringify(validationResult.data),
+                name: details.name,
+                description: details.description
             };
 
-            const success = await onItemCreate(groupIndex, item);
+            const success = await onUpdateItem(updatedItem);
             if (success) {
-                onFeedback('success', 'Položka byla úspěšně přidána.');
-                resetForm();
+                onFeedback('success', 'Položka byla úspěšně aktualizována.');
+                handleClose();
             } else {
-                onFeedback('error', 'Přidání položky selhalo. Zkuste to prosím znovu.');
+                onFeedback('error', 'Aktualizace položky selhala. Zkuste to prosím znovu.');
             }
         } catch (error) {
-            if (error instanceof z.ZodError) {
-                onFeedback('error', 'Ověření selhalo. Zkontrolujte prosím svůj vstup.');
-            } else {
-                onFeedback('error', 'Došlo k neočekávané chybě.');
-            }
+            onFeedback('error', 'Došlo k neočekávané chybě.');
         } finally {
             setLoading(false);
         }
     };
 
-    const resetForm = () => {
-        setName('');
-        setDescription('');
-        setLoginDetails({username: '', password: '', notes: '', description: ''});
-        setCardDetails({
-            cardNumber: '',
-            expiration: '',
-            cvv: '',
-            cardholderName: '',
-            notes: '',
-            description: ''
-        });
-        handleClose();
-    };
-
-    const handleUsernameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const newUsername = e.target.value;
-        setLoginDetails({...loginDetails, username: newUsername});
-        // Update description only if it hasn't been manually edited or is empty
-        if (description === loginDetails.username || description === '') {
-            setDescription(newUsername);
-        }
+    const handleChange = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
+        setDetails({ ...details, [field]: e.target.value });
     };
 
     const style = {
@@ -190,89 +108,116 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
         <Modal open={isOpen} onClose={handleClose}>
             <Box sx={style}>
                 <Typography id="modal-title" variant="h6" component="h2">
-                    Přidat novou položku
+                    Detail
                 </Typography>
-                <Box component="form" noValidate autoComplete="off" sx={{mt: 2}}>
-                    <TextField fullWidth margin="normal" label="Název" value={name}
-                               onChange={(e) => setName(e.target.value)}/>
-                    {type === 'login' && (
+                <Box component="form" noValidate autoComplete="off" sx={{ mt: 2 }}>
+                    <TextField
+                        fullWidth
+                        margin="normal"
+                        label="Název"
+                        value={details?.name || ''}
+                        onChange={handleChange('name')}
+                        error={!!errors?.name}
+                        helperText={errors?.name || ''}
+                    />
+                    <TextField
+                        fullWidth
+                        margin="normal"
+                        label="Popis"
+                        value={details?.description || ''}
+                        onChange={handleChange('description')}
+                        error={!!errors?.description}
+                        helperText={errors?.description || ''}
+                    />
+                    {groupStore.groups[groupIndex]?.groupItems[itemIndex]?.type === 'login' && (
                         <>
-                            <TextField fullWidth margin="normal" label="Uživatelské jméno"
-                                       value={loginDetails.username}
-                                       onChange={handleUsernameChange}
-                                       error={!!errors.username}
-                                       helperText={errors.username || ''}
+                            <TextField
+                                fullWidth
+                                margin="normal"
+                                label="Uživatelské jméno"
+                                value={details?.username || ''}
+                                onChange={handleChange('username')}
+                                error={!!errors?.username}
+                                helperText={errors?.username || ''}
                             />
-                            <TextField fullWidth margin="normal" label="Heslo"
-                                       value={loginDetails.password}
-                                       onChange={(e) => setLoginDetails({...loginDetails, password: e.target.value})}
-                                       error={!!errors.password}
-                                       helperText={errors.password || ''}
+                            <TextField
+                                fullWidth
+                                margin="normal"
+                                label="Heslo"
+                                value={details?.password || ''}
+                                onChange={handleChange('password')}
+                                error={!!errors?.password}
+                                helperText={errors?.password || ''}
                             />
-                            <TextField fullWidth margin="normal" label="Popis"
-                                       value={description}
-                                       onChange={(e) => setDescription(e.target.value)}
-                                       error={!!errors.description}
-                                       helperText={errors.description || ''}
-                            />
-                            <TextField fullWidth margin="normal" label="Poznámky"
-                                       value={loginDetails.notes}
-                                       onChange={(e) => setLoginDetails({...loginDetails, notes: e.target.value})}
-                                       error={!!errors.notes}
-                                       helperText={errors.notes || ''}
+                            <TextField
+                                fullWidth
+                                margin="normal"
+                                label="Poznámky"
+                                value={details?.notes || ''}
+                                onChange={handleChange('notes')}
+                                error={!!errors?.notes}
+                                helperText={errors?.notes || ''}
                             />
                         </>
                     )}
-                    {type === 'card' && (
+                    {groupStore.groups[groupIndex]?.groupItems[itemIndex]?.type === 'card' && (
                         <>
-                            <TextField fullWidth margin="normal" label="Číslo karty"
-                                       value={cardDetails.cardNumber}
-                                       onChange={(e) => setCardDetails({...cardDetails, cardNumber: e.target.value})}
-                                       error={!!errors.cardNumber}
-                                       helperText={errors.cardNumber || ''}
+                            <TextField
+                                fullWidth
+                                margin="normal"
+                                label="Číslo karty"
+                                value={details?.cardNumber || ''}
+                                onChange={handleChange('cardNumber')}
+                                error={!!errors?.cardNumber}
+                                helperText={errors?.cardNumber || ''}
                             />
-                            <TextField fullWidth margin="normal" label="Datum expirace"
-                                       value={cardDetails.expiration}
-                                       onChange={(e) => setCardDetails({...cardDetails, expiration: e.target.value})}
-                                       error={!!errors.expiration}
-                                       helperText={errors.expiration || ''}
+                            <TextField
+                                fullWidth
+                                margin="normal"
+                                label="Datum expirace"
+                                value={details?.expiration || ''}
+                                onChange={handleChange('expiration')}
+                                error={!!errors?.expiration}
+                                helperText={errors?.expiration || ''}
                             />
-                            <TextField fullWidth margin="normal" label="CVV"
-                                       value={cardDetails.cvv}
-                                       onChange={(e) => setCardDetails({...cardDetails, cvv: e.target.value})}
-                                       error={!!errors.cvv}
-                                       helperText={errors.cvv || ''}
+                            <TextField
+                                fullWidth
+                                margin="normal"
+                                label="CVV"
+                                value={details?.cvv || ''}
+                                onChange={handleChange('cvv')}
+                                error={!!errors?.cvv}
+                                helperText={errors?.cvv || ''}
                             />
-                            <TextField fullWidth margin="normal" label="Jméno držitele karty"
-                                       value={cardDetails.cardholderName}
-                                       onChange={(e) => setCardDetails({
-                                           ...cardDetails,
-                                           cardholderName: e.target.value
-                                       })}
-                                       error={!!errors.cardholderName}
-                                       helperText={errors.cardholderName || ''}
+                            <TextField
+                                fullWidth
+                                margin="normal"
+                                label="Jméno držitele karty"
+                                value={details?.cardholderName || ''}
+                                onChange={handleChange('cardholderName')}
+                                error={!!errors?.cardholderName}
+                                helperText={errors?.cardholderName || ''}
                             />
-                            <TextField fullWidth margin="normal" label="Popis"
-                                       value={description}
-                                       onChange={(e) => setDescription(e.target.value)}
-                                       error={!!errors.description}
-                                       helperText={errors.description || ''}
-                            />
-                            <TextField fullWidth margin="normal" label="Poznámky"
-                                       value={cardDetails.notes}
-                                       onChange={(e) => setCardDetails({...cardDetails, notes: e.target.value})}
-                                       error={!!errors.notes}
-                                       helperText={errors.notes || ''}
+                            <TextField
+                                fullWidth
+                                margin="normal"
+                                label="Poznámky"
+                                value={details?.notes || ''}
+                                onChange={handleChange('notes')}
+                                error={!!errors?.notes}
+                                helperText={errors?.notes || ''}
                             />
                         </>
                     )}
-                    <Box sx={{mt: 3, display: 'flex', justifyContent: 'flex-end'}}>
+
+                    <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end' }}>
                         <Button onClick={handleSubmit} disabled={loading}>
-                            {loading ? <CircularProgress size={24}/> : 'Odeslat'}
+                            {loading ? <CircularProgress size={24} /> : 'Aktualizovat'}
                         </Button>
                     </Box>
                 </Box>
             </Box>
         </Modal>
+
     );
 };

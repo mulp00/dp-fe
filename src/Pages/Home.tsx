@@ -14,7 +14,8 @@ import {
     Grid,
     IconButton,
     List,
-    ListItem, ListItemButton, Snackbar,
+    ListItemButton,
+    Snackbar,
     SpeedDial,
     SpeedDialAction,
     SpeedDialIcon,
@@ -31,12 +32,10 @@ import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
 import GroupAddIcon from '@mui/icons-material/GroupAdd';
 import {useDrawer} from "../context/DrawerContext";
 import __wbg_init, {Group as MlsGroup, Identity, KeyPackage, Provider, RatchetTree} from "../utils/crypto/openmls";
-import {applySnapshot, castToSnapshot} from "mobx-state-tree";
+import {applySnapshot} from "mobx-state-tree";
 import {runInAction} from "mobx";
-import {ConfirmModal, CreateGroupModal, EditGroupModal} from "../Components";
-import {createGroupDefaultModel, GroupSnapshotIn} from "../models/Group/GroupModel";
+import {ConfirmModal, CreateGroupModal, EditGroupModal, ItemDetailModal} from "../Components";
 import {MemberSnapshotIn} from "../models/User/MemberModel";
-import {snapshotProcessor} from "mobx-state-tree/dist/types/utility-types/snapshotProcessor";
 import {AddItemModal} from "../Components/Modals/AddItemModal";
 import {GroupItemSnapshotIn} from "../models/GroupItem/GroupItemModel";
 
@@ -52,10 +51,14 @@ export const Home = observer(function Home() {
     const [isCreateGroupModalOpen, setIsCreateGroupModalOpen] = useState<boolean>(false)
     const [isEditGroupModalOpen, setIsEditGroupModalOpen] = useState<boolean>(false)
     const [isConfirmErrorUserAddModalOpen, setIsConfirmErrorUserAddModalOpen] = useState<boolean>(false)
+    const [isAddGroupItemModalOpen, setIsAddGroupItemModalOpen] = useState<boolean>(false)
+    const [isItemDetailModalOpen, setIsItemDetailModalOpen] = useState<boolean>(false)
+
     const [selectedGroupIndex, setSelectedGroupIndex] = useState<number>(0)
     const [editedGroupIndex, setEditedGroupIndex] = useState<number>(0)
-    const [isAddGroupItemModalOpen, setIsAddGroupItemModalOpen] = useState<boolean>(false)
     const [addItemType, setAddItemType] = useState<string>("")
+    const [selectedGroupItemIndex, setSelectedGroupItemIndex] = useState<number>(0)
+
 
     const [feedBack, setFeedback] = useState<{ type: "success" | "error", message: string } | null | undefined>()
 
@@ -428,16 +431,39 @@ export const Home = observer(function Home() {
             content: ciphertext,
             type: groupItem.type,
             iv: iv,
+            epoch: groupStore.groups[groupIndex].lastEpoch
         })
 
-        runInAction(()=>{
-            groupStore.addGroupItemToGroup(selectedGroupIndex, response)
+        runInAction(() => {
+            groupStore.addGroupItemToGroup(selectedGroupIndex, {...response, decrypted: true})
         })
 
         return true
     }
+    const updateGroupItem = async (groupIndex: number, groupItem: GroupItemSnapshotIn) => {
 
-    const encryptData = async (groupIndex: number, data: string):Promise<{ciphertext: string, iv: string}> => {
+        const {ciphertext, iv} = await encryptData(groupIndex, groupItem.content)
+
+        const groupItemResponse = await apiService.updateGroupItem({
+            itemId: groupItem.id,
+            groupId: groupStore.groups[groupIndex].groupId,
+            name: groupItem.name,
+            description: groupItem.description,
+            content: ciphertext,
+            type: groupItem.type,
+            iv: iv,
+            epoch: groupStore.groups[groupIndex].lastEpoch
+        })
+
+        const decryptedGroupItem = await decryptGroupItem({...groupItemResponse, decrypted: false})
+
+        runInAction(() => {
+            groupStore.updateGroupItem(selectedGroupIndex, decryptedGroupItem)
+        })
+        return true
+    }
+
+    const encryptData = async (groupIndex: number, data: string): Promise<{ ciphertext: string, iv: string }> => {
 
         const provider = Provider.deserialize(userStore.me.keyStore);
 
@@ -452,12 +478,35 @@ export const Home = observer(function Home() {
 
         const aesKey = await importAesKey(secret);
 
-        const { ciphertext, iv } = await encryptStringWithAesCtr(data, aesKey);
+        const {ciphertext, iv} = await encryptStringWithAesCtr(data, aesKey);
 
         provider.free()
         deserializedGroup.free()
 
         return {ciphertext, iv}
+
+    }
+    const decryptData = async (groupIndex: number, data: string, iv: string): Promise<{ plaintext: string, }> => {
+
+        const provider = Provider.deserialize(userStore.me.keyStore);
+
+        const deserializedGroup = MlsGroup.deserialize(groupStore.groups[groupIndex].serializedGroup);
+
+        const secret = deserializedGroup.export_key(
+            provider,
+            'encryptionKey',
+            new Uint8Array(32).fill(0x30),
+            32
+        )
+
+        const aesKey = await importAesKey(secret);
+
+        const plaintext = await decryptStringWithAesCtr(data, aesKey, iv);
+
+        provider.free()
+        deserializedGroup.free()
+
+        return {plaintext}
 
     }
 
@@ -472,7 +521,10 @@ export const Home = observer(function Home() {
             ["encrypt", "decrypt"] // Key usages
         );
     };
-    const encryptStringWithAesCtr = async (plaintext: string, key: CryptoKey): Promise<{ ciphertext: string; iv: string }> => {
+    const encryptStringWithAesCtr = async (plaintext: string, key: CryptoKey): Promise<{
+        ciphertext: string;
+        iv: string
+    }> => {
         const iv = window.crypto.getRandomValues(new Uint8Array(16));
         const encodedText = str2ab(plaintext);
         const encryptedData = await window.crypto.subtle.encrypt(
@@ -503,20 +555,50 @@ export const Home = observer(function Home() {
         return ab2str(decryptedData);
     };
 
+    const loadGroupItems = async () => {
+
+        const groupItems = await apiService.getGroupItems({groupId: groupStore.groups[selectedGroupIndex]?.groupId})
+
+        const groupsItemsToDecrypt = groupItems.map((groupItem) => {
+            return {...groupItem, decrypted: false}
+        })
+
+        const decryptedGroupItems = await decryptGroupItems(groupsItemsToDecrypt)
+
+        runInAction(() => {
+            groupStore.updateGroupItems(selectedGroupIndex, decryptedGroupItems)
+        });
+    }
+    const decryptGroupItems = async (groupItems: GroupItemSnapshotIn[]): Promise<GroupItemSnapshotIn[]> => {
+
+        const promises = groupItems.map(async (groupItem) => {
+            if (!groupItem.decrypted) {
+                const decryptedContent = (await decryptData(selectedGroupIndex, groupItem.content, groupItem.iv)).plaintext
+                return {...groupItem, content: decryptedContent, decrypted: true}
+            } else {
+                return groupItem
+            }
+        })
+        return await Promise.all(promises)
+    }
+    const decryptGroupItem = async (groupItem: GroupItemSnapshotIn): Promise<GroupItemSnapshotIn> => {
+
+        if (!groupItem.decrypted) {
+            const decryptedContent = (await decryptData(selectedGroupIndex, groupItem.content, groupItem.iv)).plaintext
+            return {...groupItem, content: decryptedContent, decrypted: true}
+        } else {
+            return groupItem
+        }
+    }
+
     useEffect(() => {
 
-        const loadGroupItems = async () => {
-            const groupItems = await apiService.getGroupItems({groupId: groupStore.groups[selectedGroupIndex]?.groupId})
-
-            runInAction(() => {
-                groupStore.updateGroupItems(selectedGroupIndex, groupItems)
-            });
-        }
         if (isWasmInitialized && groupStore.groups[selectedGroupIndex]?.groupId !== undefined) {
             loadGroupItems()
         }
         // groupStore.updateGroup()
     }, [isWasmInitialized, selectedGroupIndex, groupStore.groups, groupStore.groups[selectedGroupIndex]?.groupItems]);
+
 
     useEffect(() => {
         const initializeWasm = async () => {
@@ -598,7 +680,11 @@ export const Home = observer(function Home() {
             sortable: false,
             renderCell: (params: GridRenderCellParams) => (
                 <IconButton
-                    onClick={() => console.log(params.id)}
+                    onClick={() => {
+                        const index = groupStore.groups[selectedGroupIndex].getGroupItemIndex(params.row.id)
+                        setSelectedGroupItemIndex(index)
+                        setIsItemDetailModalOpen(true)
+                    }}
                 >
                     <MoreVertIcon/>
                 </IconButton>
@@ -630,7 +716,8 @@ export const Home = observer(function Home() {
                         <React.Fragment key={group.groupId /* Use group.id instead of index for key if possible */}>
                             <ListItemButton
                                 selected={groupStore.groups[selectedGroupIndex].groupId === group.groupId}
-                                onClick={() => {
+                                onClick={async () => {
+                                    await loadGroupItems()
                                     setSelectedGroupIndex(groupStore.getGroupIndex(group))
                                 }}
                             >
@@ -689,6 +776,17 @@ export const Home = observer(function Home() {
                 groupIndex={selectedGroupIndex}
                 onItemCreate={createNewGroupItem}
                 type={addItemType}
+                onFeedback={(type, message) => setFeedback({type, message})}
+            />
+            <ItemDetailModal
+                isOpen={isItemDetailModalOpen}
+                handleClose={() => setIsItemDetailModalOpen(false)}
+                itemIndex={selectedGroupItemIndex}
+                groupIndex={selectedGroupIndex}
+                onUpdateItem={async (itemDetail: GroupItemSnapshotIn) => {
+                    await updateGroupItem(selectedGroupIndex, itemDetail)
+                    return true
+                }}
                 onFeedback={(type, message) => setFeedback({type, message})}
             />
             <Box
@@ -754,12 +852,19 @@ export const Home = observer(function Home() {
                                     {groupStore.groups[selectedGroupIndex]?.groupItems && groupStore.groups[selectedGroupIndex].groupItems.length > 0
                                         ?
                                         <DataGrid
-                                            sx={{borderWidth: 0,
+                                            sx={{
+                                                borderWidth: 0,
                                                 "&.MuiDataGrid-root .MuiDataGrid-cell:focus-within": {
-                                                    outline: "none !important",}
-                                                }}
+                                                    outline: "none !important",
+                                                }
+                                            }}
                                             rows={groupStore.groups[selectedGroupIndex].groupItems?.map((groupItem) => {
-                                                return {id: groupItem.id, type: groupItem.type, name: groupItem.name, description: groupItem.description}
+                                                return {
+                                                    id: groupItem.id,
+                                                    type: groupItem.type,
+                                                    name: groupItem.name,
+                                                    description: groupItem.description
+                                                }
                                             })}
                                             columns={columns}
                                             autoHeight

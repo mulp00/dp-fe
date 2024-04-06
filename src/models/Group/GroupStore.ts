@@ -37,13 +37,19 @@ export const GroupStoreModel = types
         },
         updateGroupItems(groupIndex: number, groupItems: GroupItemSnapshotIn[]){
             if (groupIndex !== -1) {
-                applySnapshot(self.groups[groupIndex].groupItems, groupItems);
+                self.groups[groupIndex].setGroupItems(groupItems);
             }
             return self.groups[groupIndex]
         },
         addGroupItemToGroup(groupIndex: number, item: GroupItemSnapshotIn){
             if (groupIndex !== -1) {
                 self.groups[groupIndex].addGroupItem(item)
+            }
+            return self.groups[groupIndex]
+        },
+        updateGroupItem(groupIndex: number, item: GroupItemSnapshotIn){
+            if (groupIndex !== -1) {
+                self.groups[groupIndex].updateGroupItem(item)
             }
             return self.groups[groupIndex]
         },

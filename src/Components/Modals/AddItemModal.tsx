@@ -1,7 +1,6 @@
 import React, {useEffect, useState} from 'react';
 import {Box, Button, CircularProgress, Modal, TextField, Typography} from '@mui/material';
 import {z} from 'zod';
-import {GroupSnapshotIn} from "../../models/Group/GroupModel";
 import {GroupItemSnapshotIn} from "../../models/GroupItem/GroupItemModel";
 import {useStores} from "../../models/helpers/useStores";
 
@@ -14,14 +13,14 @@ interface AddItemModalProps {
     onFeedback: (type: 'success' | 'error', message: string) => void;
 }
 
-const loginSchema = z.object({
+export const loginSchema = z.object({
     username: z.string().min(1, "Uživatelské jméno je povinné"),
     password: z.string().min(1, "Heslo je povinné"),
     notes: z.string().optional(),
     description: z.string().optional(),
 });
 
-const cardSchema = z.object({
+export const cardSchema = z.object({
     cardNumber: z.string().min(15, "Číslo karty je povinné, musí být nejméně 15 čísel dlouhé"),
     expiration: z.string().min(1, "Datum expirace je povinné"),
     cvv: z.string().min(1, "CVV je povinné"),
@@ -131,6 +130,7 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
                 id: "",
                 description: descriptionToUse,
                 iv: "",
+                decrypted: true,
             };
 
             const success = await onItemCreate(groupIndex, item);
