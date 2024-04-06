@@ -754,7 +754,10 @@ export const Home = observer(function Home() {
                                     {groupStore.groups[selectedGroupIndex].groupItems && groupStore.groups[selectedGroupIndex].groupItems.length > 0
                                         ?
                                         <DataGrid
-                                            sx={{borderWidth: 0}}
+                                            sx={{borderWidth: 0,
+                                                "&.MuiDataGrid-root .MuiDataGrid-cell:focus-within": {
+                                                    outline: "none !important",}
+                                                }}
                                             rows={groupStore.groups[selectedGroupIndex].groupItems?.map((groupItem) => {
                                                 return {id: groupItem.id, type: groupItem.type, name: groupItem.name, description: groupItem.description}
                                             })}
