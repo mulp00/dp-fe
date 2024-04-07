@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { observer } from "mobx-react";
-import {Box, Button, CircularProgress, FormControl, IconButton, Modal, TextField, Typography} from "@mui/material";
+import { Box, Button, CircularProgress, FormControl, IconButton, Modal, TextField, Typography } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 
 export type CreateGroupModalProps = {
@@ -14,6 +14,18 @@ export const CreateGroupModal = observer(function CreateGroupModal({ isOpen, onH
     const [loading, setLoading] = useState(false);
     const [groupName, setGroupName] = useState("");
     const [groupNameError, setGroupNameError] = useState("");
+    const inputRef = useRef<HTMLInputElement>(null);
+
+
+    useEffect(() => {
+        if (isOpen) {
+            setTimeout(() => {
+                if (inputRef.current) {
+                    inputRef.current.focus();
+                }
+            }, 100);
+        }
+    }, [isOpen]);
 
     const validateGroupName = (name: string) => {
         if (name.length >= 4) {
@@ -25,7 +37,8 @@ export const CreateGroupModal = observer(function CreateGroupModal({ isOpen, onH
         }
     };
 
-    const handleFormSubmit = async () => {
+    const handleFormSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault(); // Prevent the form from causing a page reload
         if (!validateGroupName(groupName)) {
             return;
         }
@@ -69,7 +82,7 @@ export const CreateGroupModal = observer(function CreateGroupModal({ isOpen, onH
             aria-labelledby="modal-modal-title"
             aria-describedby="modal-modal-description"
         >
-            <Box sx={style}>
+            <Box sx={style} component="form" onSubmit={handleFormSubmit} noValidate>
                 <IconButton sx={{position: "fixed", top: 5, right: 5}} onClick={onHandleClose}>
                     <CloseIcon/>
                 </IconButton>
@@ -78,6 +91,7 @@ export const CreateGroupModal = observer(function CreateGroupModal({ isOpen, onH
                         Vytvořit novou skupinu
                     </Typography>
                     <TextField
+                        autoFocus
                         required
                         label="Název"
                         value={groupName}
@@ -88,9 +102,10 @@ export const CreateGroupModal = observer(function CreateGroupModal({ isOpen, onH
                         margin="normal"
                         error={!!groupNameError}
                         helperText={groupNameError}
+                        inputRef={inputRef}
                     />
                     <Box display="flex" justifyContent="space-between" mt={2}>
-                        <Button variant="contained" onClick={handleFormSubmit} disabled={loading}>
+                        <Button type="submit" variant="contained" disabled={loading}>
                             {loading ? <CircularProgress size={24} /> : 'Vytvořit'}
                         </Button>
                     </Box>

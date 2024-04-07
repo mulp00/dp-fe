@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import {Box, Button, CircularProgress, IconButton, Modal, TextField, Typography} from '@mui/material';
 import {z} from 'zod';
 import {GroupItemSnapshotIn} from "../../models/GroupItem/GroupItemModel";
@@ -52,6 +52,19 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
     const [loading, setLoading] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
     const {groupStore} = useStores()
+    const inputRef = useRef<HTMLInputElement>(null);
+
+
+    useEffect(() => {
+        if (isOpen) {
+            setTimeout(() => {
+                if (inputRef.current) {
+                    inputRef.current.focus();
+                }
+            }, 100);
+        }
+    }, [isOpen]);
+
 
     useEffect(() => {
         if (!isOpen) {
@@ -197,8 +210,14 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
                     Přidat novou položku
                 </Typography>
                 <Box component="form" noValidate autoComplete="off" sx={{mt: 2}}>
-                    <TextField fullWidth margin="normal" label="Název" value={name}
-                               onChange={(e) => setName(e.target.value)}/>
+                    <TextField
+                        fullWidth
+                        margin="normal"
+                        label="Název"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        inputRef={inputRef}
+                    />
                     {type === 'login' && (
                         <>
                             <TextField fullWidth margin="normal" label="Uživatelské jméno"
