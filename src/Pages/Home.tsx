@@ -425,7 +425,7 @@ export const Home = observer(function Home() {
 
         const {ciphertext, iv} = await encryptData(groupIndex, groupItem.content)
 
-        const response = await apiService.createNewGroupItem({
+        await apiService.createNewGroupItem({
             groupId: groupStore.groups[groupIndex].groupId,
             name: groupItem.name,
             description: groupItem.description,
@@ -436,7 +436,7 @@ export const Home = observer(function Home() {
         })
 
         runInAction(() => {
-            groupStore.addGroupItemToGroup(selectedGroupIndex, {...response, decrypted: true})
+            groupStore.addGroupItemToGroup(selectedGroupIndex, {...groupItem, decrypted: false})
         })
 
         return true
@@ -464,7 +464,7 @@ export const Home = observer(function Home() {
         return true
     }
 
-    const deleteGroupItem = async ( groupIndex: number, groupItemIndex: number) => {
+    const deleteGroupItem = async (groupIndex: number, groupItemIndex: number) => {
 
         await apiService.deleteGroupItem({
             itemId: groupStore.groups[groupIndex].groupItems[groupItemIndex].id,
@@ -476,7 +476,7 @@ export const Home = observer(function Home() {
         return true
     }
 
-    const deleteGroup = async (groupIndex: number)=>{
+    const deleteGroup = async (groupIndex: number) => {
 
         await apiService.deleteGroup({groupId: groupStore.groups[groupIndex].groupId})
 
@@ -544,26 +544,24 @@ export const Home = observer(function Home() {
             ["encrypt", "decrypt"] // Key usages
         );
     };
-    const encryptStringWithAesCtr = async (plaintext: string, key: CryptoKey): Promise<{
-        ciphertext: string;
-        iv: string
-    }> => {
-        const iv = window.crypto.getRandomValues(new Uint8Array(16));
-        const encodedText = str2ab(plaintext);
-        const encryptedData = await window.crypto.subtle.encrypt(
-            {
-                name: "AES-CTR",
-                counter: iv,
-                length: 128,
-            },
-            key,
-            encodedText
-        );
-        return {
-            ciphertext: ab2base64(encryptedData),
-            iv: ab2base64(iv)
+    const encryptStringWithAesCtr =
+        async (plaintext: string, key: CryptoKey): Promise<{ ciphertext: string; iv: string }> => {
+            const iv = window.crypto.getRandomValues(new Uint8Array(16));
+            const encodedText = str2ab(plaintext);
+            const encryptedData = await window.crypto.subtle.encrypt(
+                {
+                    name: "AES-CTR",
+                    counter: iv,
+                    length: 128,
+                },
+                key,
+                encodedText
+            );
+            return {
+                ciphertext: ab2base64(encryptedData),
+                iv: ab2base64(iv)
+            };
         };
-    };
 
     const decryptStringWithAesCtr = async (ciphertext: string, key: CryptoKey, iv: string): Promise<string> => {
         const decryptedData = await window.crypto.subtle.decrypt(
@@ -587,6 +585,8 @@ export const Home = observer(function Home() {
         })
 
         const decryptedGroupItems = await decryptGroupItems(groupsItemsToDecrypt)
+
+        console.log(JSON.stringify(decryptedGroupItems))
 
         runInAction(() => {
             groupStore.updateGroupItems(selectedGroupIndex, decryptedGroupItems)
@@ -811,7 +811,7 @@ export const Home = observer(function Home() {
                 onHandleRemoveUser={removeUser}
                 onHandleLeaveGroup={leaveGroup}
                 onFeedback={(type, message) => setFeedback({type, message})}
-                onHandleGroupDelete={async()=>deleteGroup(selectedGroupIndex)}
+                onHandleGroupDelete={async () => deleteGroup(selectedGroupIndex)}
             />
             <AddItemModal
                 isOpen={isAddGroupItemModalOpen}
