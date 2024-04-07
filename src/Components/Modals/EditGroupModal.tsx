@@ -154,7 +154,7 @@ export const EditGroupModal = observer(function EditGroupModal(props: EditGroupM
                     onHandleClose={() => setIsRefreshKeyModalOpen(false)}
                     onHandleSubmit={() => props.onRotateGroupKey(props.groupIndex)}
                     title="Aktualizovat skupinový klíč"
-                    text="Pokud máte pochyby, zda nedošlo ke kompromitaci skupiný nebo vašeho klíče ve skupině, vygenerujte nový!"
+                    text="Pokud máte pochyby, zda nedošlo ke kompromitaci skupiny nebo vašeho klíče ve skupině, vygenerujte nový!"
                     confirmText="Vygenerovat"
                     successMessage="Klíč aktualizován"
                     onFeedback={props.onFeedback}

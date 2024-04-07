@@ -4,7 +4,7 @@ import {withSetPropAction} from "../helpers/withSetPropAction";
 export const GroupItemModel = types
     .model("GroupItemModel")
     .props({
-        id: types.string,
+        itemId: types.string,
         name: types.string,
         description: types.string,
         groupId: types.string,
@@ -16,7 +16,7 @@ export const GroupItemModel = types
     .views((self) => ({})) // eslint-disable-line @typescript-eslint/no-unused-vars
     .actions((self) => ({
         clear() {
-            self.id = ""
+            self.itemId = ""
             self.name = ""
             self.description = ""
             self.groupId = ""
@@ -35,7 +35,7 @@ export interface GroupItemSnapshotIn extends SnapshotIn<typeof GroupItemModel> {
 }
 
 export const createGroupItemDefaultModel = () => types.optional(GroupItemModel, {
-    id: "",
+    itemId: "",
     name: "",
     description: "",
     groupId: "",

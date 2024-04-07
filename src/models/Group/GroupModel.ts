@@ -46,13 +46,13 @@ export const GroupModel = types
             self.groupItems.push(item)
         },
         getGroupItemIndex(groupItemId: string){
-            return  self.groupItems.findIndex(g => g.id === groupItemId);
+            return  self.groupItems.findIndex(g => g.itemId === groupItemId);
         },
         setGroupItems(groupItems: GroupItemSnapshotIn[]){
             applySnapshot(self.groupItems, groupItems)
         },
         updateGroupItem( groupItem: GroupItemSnapshotIn){
-            const groupItemIndex = self.groupItems.findIndex(g => g.id === groupItem.id);
+            const groupItemIndex = self.groupItems.findIndex(g => g.itemId === groupItem.itemId);
             if (groupItemIndex !== -1) {
                 applySnapshot(self.groupItems[groupItemIndex], groupItem);
             }

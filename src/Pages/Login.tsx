@@ -19,6 +19,7 @@ import {observer} from "mobx-react";
 import {applySnapshot} from "mobx-state-tree";
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
+import {decryptStringWithAesCtr, importAesKey} from "../utils/crypto/aes/encryption";
 
 export interface LoginState {
     email: string;
@@ -61,21 +62,32 @@ export const Login = observer(function Login() {
             totp: mfkdf.derive.factors.totp(Number(state.totp), {time: Date.now()}),
         })
 
-        const key = derive.key.toString('hex')
+        const key = derive.key
+
+        const aesKey = await importAesKey(derive.key);
 
         const payload: LoginPayload = {
             email: state.email,
-            masterKeyHash: key,
+            masterKeyHash: key.toString('hex'),
         };
 
         try {
             const loginResponse = await apiService.login(payload);
             authStore.setAuthToken(loginResponse.token);
-            api.setAuthToken(loginResponse.token); // Manually set the token for immediate effect
+            authStore.setKey(key);
+            apiService.setAuthToken(loginResponse.token);
 
             const meResponse = await apiService.getMe();
-            // userStore.me.setSerializedIdentity(meResponse.serializedIdentity)
-            applySnapshot(userStore.me, meResponse)
+
+            const decryptedSerializedIdentity = await decryptStringWithAesCtr(meResponse.serializedIdentity.ciphertext, aesKey, meResponse.serializedIdentity.iv)
+            const decryptedKeyStore = await decryptStringWithAesCtr(meResponse.keyStore.ciphertext, aesKey, meResponse.keyStore.iv)
+
+            applySnapshot(userStore.me, {
+                ...meResponse,
+                serializedIdentity: decryptedSerializedIdentity,
+                keyPackage: meResponse.keyPackage,
+                keyStore: decryptedKeyStore
+            })
             navigate("/home")
 
         } catch (error) {

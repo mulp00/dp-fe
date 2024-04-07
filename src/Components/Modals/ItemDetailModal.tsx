@@ -1,9 +1,10 @@
 import React, {useEffect, useState} from 'react';
-import {Box, Button, CircularProgress, Modal, TextField, Typography} from '@mui/material';
+import {Box, Button, CircularProgress, IconButton, Modal, TextField, Typography} from '@mui/material';
 import {GroupItemSnapshotIn} from "../../models/GroupItem/GroupItemModel";
 import {cardSchema, loginSchema} from "./AddItemModal";
 import {useStores} from "../../models/helpers/useStores";
 import {ConfirmModal} from "./ConfirmModal";
+import CloseIcon from "@mui/icons-material/Close";
 
 interface ItemDetailModalProps {
     isOpen: boolean;
@@ -48,12 +49,6 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
         }
     }, [isOpen, groupIndex, itemIndex, groupStore.groups]);
 
-    useEffect(() => {
-        if (!isOpen) {
-            setErrors(null)
-            setDetails({});
-        }
-    }, [isOpen]);
 
     const handleSubmit = async () => {
         setLoading(true);
@@ -83,7 +78,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
             const success = await onUpdateItem(updatedItem);
             if (success) {
                 onFeedback('success', 'Položka byla úspěšně aktualizována.');
-                onHandleClose();
+                closeModal();
             } else {
                 onFeedback('error', 'Aktualizace položky selhala. Zkuste to prosím znovu.');
             }
@@ -98,6 +93,14 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
         setDetails({...details, [field]: e.target.value});
     };
 
+    const closeModal = () => {
+        onHandleClose();
+        setTimeout(() => {
+            setErrors(null)
+            setDetails({});
+        }, 300); // Delay to allow modal close animation
+    };
+
     const style = {
         position: 'absolute',
         top: '50%',
@@ -110,13 +113,13 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
     };
 
     return (
-        <Modal open={isOpen} onClose={onHandleClose}>
+        <Modal open={isOpen} onClose={closeModal}>
             <Box>
                 <ConfirmModal
                     isOpen={isDeleteConfirmModalOpen}
                     onHandleClose={() => {
                         setIsDeleteConfirmModalOpen(false)
-                        onHandleClose()
+                        closeModal()
                     }}
                     onHandleSubmit={async ()=> {
                         await onDeleteItem(itemIndex)
@@ -128,6 +131,11 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                     confirmText="Smazat"
                 />
                 <Box sx={style}>
+                    <IconButton sx={{position: "fixed", top: 5, right: 5}} onClick={()=> {
+                        closeModal()
+                    }}>
+                        <CloseIcon/>
+                    </IconButton>
                     <Typography id="modal-title" variant="h6" component="h2">
                         Detail
                     </Typography>
@@ -231,14 +239,14 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                             </>
                         )}
 
-                        <Box sx={{mt: 3, display: 'flex', justifyContent: 'flex-end'}}>
-                            <Button onClick={async() => {
+                        <Box sx={{mt: 3, display: 'flex', justifyContent: 'space-between'}}>
+                            <Button variant="outlined" onClick={handleSubmit} disabled={loading}>
+                                {loading ? <CircularProgress size={24}/> : 'Aktualizovat'}
+                            </Button>
+                            <Button variant="contained" color="error" onClick={async() => {
                                 setIsDeleteConfirmModalOpen(true)
                             }}>
                                 Smazat
-                            </Button>
-                            <Button onClick={handleSubmit} disabled={loading}>
-                                {loading ? <CircularProgress size={24}/> : 'Aktualizovat'}
                             </Button>
                         </Box>
                     </Box>

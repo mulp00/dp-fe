@@ -49,6 +49,7 @@ export const ConfirmModal = observer(function ConfirmModal({
             onFeedback('success', successMessage)
             handleClose()
         } catch (error) {
+            console.error(error)
             onFeedback('error', "Něco se pokazilo")
             handleClose()
         }

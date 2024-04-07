@@ -10,30 +10,29 @@ interface RouteProps {
     children: ReactNode;
 }
 
-const App = observer(function App()
-{
+const App = observer(function App() {
     // load persisted state if possible
     useInitialRootStore()
 
     const {authStore} = useStores()
 
-    const GuestRoute: React.FC<RouteProps> = ({ children }) => {
+    const GuestRoute: React.FC<RouteProps> = ({children}) => {
 
         if (authStore.isAuthenticated()) {
             // Redirect to the home page if logged in
-            return <Navigate to="/home" replace />;
+            return <Navigate to="/home" replace/>;
         }
 
-        return <>{children}</>; // Wrapped children in fragment for explicit return
+        return <>{children}</>;
     };
 
-    const ProtectedRoute: React.FC<RouteProps> = ({ children }) => {
+    const ProtectedRoute: React.FC<RouteProps> = ({children}) => {
         if (!authStore.isAuthenticated()) {
             // Redirect to the login page if not logged in
-            return <Navigate to="/login" replace />;
+            return <Navigate to="/login" replace/>;
         }
 
-        return <>{children}</>; // Wrapped children in fragment for explicit return
+        return <>{children}</>;
     };
 
 
@@ -42,10 +41,11 @@ const App = observer(function App()
             <DrawerProvider>
                 <Routes>
                     <Route path="/" element={<Layout/>}>
-                        {/* Apply ProtectedRoute for authenticated routes */}
-                        <Route index path="/home" element={<ProtectedRoute><Home/></ProtectedRoute>}/>
+                        <Route index element={authStore.isAuthenticated() ? <Navigate to="/home" replace/> :
+                            <Navigate to="/login" replace/>}/>
 
-                        {/* Apply GuestRoute for login and register */}
+                        <Route path="/home" element={<ProtectedRoute><Home/></ProtectedRoute>}/>
+
                         <Route path="/login" element={<GuestRoute><Login/></GuestRoute>}/>
                         <Route path="/register" element={<GuestRoute><Register/></GuestRoute>}/>
                     </Route>

@@ -29,6 +29,7 @@ import {Identity, Provider} from "../utils/crypto/openmls";
 import {runInAction} from "mobx";
 import LockResetIcon from '@mui/icons-material/LockReset';
 import {ConfirmModal} from "./Modals/ConfirmModal";
+import {encryptStringWithAesCtr, importAesKey} from "../utils/crypto/aes/encryption";
 
 const ResponsiveAppBar: FC = observer(function ResponsiveAppBar() {
 
@@ -57,6 +58,26 @@ const ResponsiveAppBar: FC = observer(function ResponsiveAppBar() {
 
     const [feedBack, setFeedback] = useState<{ type: "success" | "error", message: string } | null | undefined>()
 
+    const updateKeyStore = async (keyStoreToUpdate: string) => {
+
+        const aesKey = await importAesKey(authStore.getKeyAsUint8Array());
+
+        const {
+            ciphertext: serialized_keyStore_ciphertext,
+            iv: serialized_keyStore_iv
+        } = await encryptStringWithAesCtr(keyStoreToUpdate, aesKey)
+
+
+        await apiService.updateKeyStore({
+            keyStore: {
+                ciphertext: serialized_keyStore_ciphertext,
+                iv: serialized_keyStore_iv
+            }
+        })
+        runInAction(() => {
+            userStore.me.setKeyStore(keyStoreToUpdate)
+        });
+    }
 
     const handleCloseUserMenu = () => {
         setAnchorElUser(null);
@@ -76,7 +97,7 @@ const ResponsiveAppBar: FC = observer(function ResponsiveAppBar() {
             userStore.me.setKeyStore(keyStoreToUpdate)
         });
 
-        await apiService.updateKeyStore({keyStore: keyStoreToUpdate})
+        await updateKeyStore(keyStoreToUpdate)
         runInAction(() => {
             userStore.me.setKeyStore(keyStoreToUpdate)
         });

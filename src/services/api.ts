@@ -12,7 +12,7 @@ export type GroupResponse = {
     serializedUserGroupId: string;
     name: string;
     creator: Member;
-    serializedGroup: string;
+    serializedGroup: { ciphertext: string, iv: string; };
     users: [
         Member
     ];
@@ -27,9 +27,9 @@ export interface RegisterPayload {
     mfkdfpolicy: {
         policy: string;
     };
-    serializedIdentity: string;
+    serializedIdentity: { ciphertext: string, iv: string; };
     keyPackage: string;
-    keyStore: string;
+    keyStore: { ciphertext: string, iv: string; };
 }
 
 export interface LoginPayload {
@@ -50,14 +50,15 @@ export interface GetPolicyResponse {
 }
 
 export interface GetMeResponse {
-    serializedIdentity: string;
+    serializedIdentity: { ciphertext: string, iv: string; };
     email: string;
     keyPackage: string;
+    keyStore: { ciphertext: string, iv: string; };
 }
 
 export interface PostNewGroupPayload {
     name: string;
-    serializedGroup: string;
+    serializedGroup: { ciphertext: string, iv: string; };
     ratchetTree: string;
 }
 
@@ -89,7 +90,7 @@ export interface PostWelcomeMessage {
 
 export interface PatchSerializedUserGroup {
     serializedUserGroupId: string;
-    serializedUserGroup: string;
+    serializedUserGroup: { ciphertext: string, iv: string; };
     epoch: number;
 }
 
@@ -106,7 +107,7 @@ export type GetGroupsToJoin = [
 
 export interface CreateSerializedUserGroupAfterJoinPayload {
     groupId: string,
-    serializedUserGroup: string,
+    serializedUserGroup: { ciphertext: string, iv: string; },
     epoch: string,
     welcomeMessageId: string,
 }
@@ -124,7 +125,7 @@ export type GetCommitMessagesResponse = [
 ]
 
 export interface PatchKeyStorePayload {
-    keyStore: string;
+    keyStore: { ciphertext: string, iv: string; };
 }
 
 export interface PatchKeyPackagePayload {
@@ -155,7 +156,7 @@ export interface CreateGroupItemPayload {
     description: string;
     groupId: string;
     type: string;
-    content: {ciphertext: string, iv: string;};
+    content: { ciphertext: string, iv: string; };
     epoch: number;
 }
 
@@ -165,24 +166,25 @@ export interface UpdateGroupItemPayload {
     description: string;
     groupId: string;
     type: string;
-    content: {ciphertext: string, iv: string;};
+    content: { ciphertext: string, iv: string; };
     epoch: number;
 }
 
-export interface DeleteGroupItemPayload{
+export interface DeleteGroupItemPayload {
     itemId: string;
 }
-export interface DeleteGroupPayload{
+
+export interface DeleteGroupPayload {
     groupId: string;
 }
 
 export interface GroupItemResponse {
-    id: string;
+    itemId: string;
     name: string;
     description: string;
     groupId: string;
     type: string;
-    content: {ciphertext: string, iv: string;};
+    content: { ciphertext: string, iv: string; };
 }
 
 export type GetGroupItemCollectionResponse = [
@@ -450,6 +452,7 @@ class ApiService {
             }
         }).then(response => response.data);
     }
+
     public async updateGroupItem(payload: UpdateGroupItemPayload): Promise<GroupItemResponse> {
         return this.axiosInstance.patch<GroupItemResponse>(`/updateGroupItem`, payload, {
             headers: {
@@ -457,6 +460,7 @@ class ApiService {
             }
         }).then(response => response.data);
     }
+
     public async deleteGroupItem(payload: DeleteGroupItemPayload): Promise<string> {
         return this.axiosInstance.post<string>(`/deleteGroupItem`, payload, {
             headers: {
@@ -464,6 +468,7 @@ class ApiService {
             }
         }).then(response => response.data);
     }
+
     public async deleteGroup(payload: DeleteGroupPayload): Promise<string> {
         return this.axiosInstance.post<string>(`/deleteGroup`, payload, {
             headers: {

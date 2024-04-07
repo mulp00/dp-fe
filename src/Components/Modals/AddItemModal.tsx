@@ -141,7 +141,7 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
                 groupId: groupStore.groups[groupIndex].groupId,
                 type,
                 content: {ciphertext, iv: ""},
-                id: "",
+                itemId: "",
                 description: descriptionToUse,
                 decrypted: true,
             };

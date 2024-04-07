@@ -10,6 +10,7 @@ import {z} from 'zod';
 import api, {RegisterPayload} from "../services/api";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import Visibility from "@mui/icons-material/Visibility";
+import {encryptStringWithAesCtr, importAesKey} from "../utils/crypto/aes/encryption";
 
 const RegisterSchema = z.object({
     email: z.string().email(),
@@ -55,8 +56,8 @@ export const Register = function () {
     };
 
     const [state, setState] = useState({
-        email: '',
-        password: '',
+        email: 'test@email.com',
+        password: 'SomePassword784512omgVerySecure',
     });
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -90,9 +91,12 @@ export const Register = function () {
 
         const provider = new Provider();
         const identity = new Identity(provider, state.email);
-        const keyPackage = identity.key_package(provider).serialize();
+        const keyPackage = identity.key_package(provider)
+        const serialized_keyPackage = keyPackage.serialize()
         const serialized_identity = identity.serialize();
-        const keyStore = provider.serialize();
+        const serialized_keyStore = provider.serialize();
+
+
 
         const setup = await mfkdf.setup.key([
             await mfkdf.setup.factors.password(state.password),
@@ -104,6 +108,11 @@ export const Register = function () {
 
         setQr(setup.outputs.totp.uri);
 
+        const aesKey = await importAesKey(setup.key);
+
+        const {ciphertext: serialized_identity_ciphertext, iv: serialized_identity_iv} = await encryptStringWithAesCtr(serialized_identity, aesKey)
+        const {ciphertext: serialized_keyStore_ciphertext, iv: serialized_keyStore_iv} = await encryptStringWithAesCtr(serialized_keyStore, aesKey)
+
         const payload: RegisterPayload = {
             email: state.email,
             password: state.password,
@@ -111,10 +120,14 @@ export const Register = function () {
             mfkdfpolicy: {
                 policy: JSON.stringify(setup.policy),
             },
-            serializedIdentity: serialized_identity,
-            keyPackage: keyPackage,
-            keyStore: keyStore,
+            serializedIdentity: {ciphertext: serialized_identity_ciphertext, iv: serialized_identity_iv},
+            keyPackage: serialized_keyPackage,
+            keyStore: {ciphertext: serialized_keyStore_ciphertext, iv: serialized_keyStore_iv},
         };
+
+        provider.free()
+        identity.free()
+        keyPackage.free()
 
         try {
             await api.register(payload);
