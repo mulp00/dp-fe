@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
-import { Box, Button, CircularProgress, Modal, TextField, Typography } from '@mui/material';
-import { GroupItemSnapshotIn } from "../../models/GroupItem/GroupItemModel";
-import { cardSchema, loginSchema } from "./AddItemModal";
-import { useStores } from "../../models/helpers/useStores";
+import React, {useEffect, useState} from 'react';
+import {Box, Button, CircularProgress, Modal, TextField, Typography} from '@mui/material';
+import {GroupItemSnapshotIn} from "../../models/GroupItem/GroupItemModel";
+import {cardSchema, loginSchema} from "./AddItemModal";
+import {useStores} from "../../models/helpers/useStores";
 import {ConfirmModal} from "./ConfirmModal";
 
 interface ItemDetailModalProps {
@@ -12,7 +12,7 @@ interface ItemDetailModalProps {
     groupIndex: number;
     onUpdateItem: (groupItem: GroupItemSnapshotIn) => Promise<boolean>;
     onFeedback: (type: 'success' | 'error', message: string) => void;
-    onDeleteItem: (groupItem: GroupItemSnapshotIn)=>Promise<boolean>
+    onDeleteItem: (groupItemIndex: number) => Promise<boolean>
 }
 
 export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
@@ -22,11 +22,12 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                                                                     groupIndex,
                                                                     onUpdateItem,
                                                                     onFeedback,
+                                                                    onDeleteItem
                                                                 }) => {
     const [details, setDetails] = useState<any>({});
     const [loading, setLoading] = useState(false);
     const [errors, setErrors] = useState<Record<string, string> | null>({});
-    const { groupStore } = useStores();
+    const {groupStore} = useStores();
 
     const [isDeleteConfirmModalOpen, setIsDeleteConfirmModalOpen] = useState<boolean>(false)
 
@@ -94,7 +95,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
     };
 
     const handleChange = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
-        setDetails({ ...details, [field]: e.target.value });
+        setDetails({...details, [field]: e.target.value});
     };
 
     const style = {
@@ -113,11 +114,13 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
             <Box>
                 <ConfirmModal
                     isOpen={isDeleteConfirmModalOpen}
-                    onHandleClose={()=>{
+                    onHandleClose={() => {
                         setIsDeleteConfirmModalOpen(false)
                         onHandleClose()
                     }}
-                    onHandleSubmit={handleSubmit}
+                    onHandleSubmit={async ()=> {
+                        await onDeleteItem(itemIndex)
+                    }}
                     title={"Opravdu chcete položku smazat"}
                     text={""}
                     successMessage={"Položka smazána"}
@@ -229,7 +232,9 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                         )}
 
                         <Box sx={{mt: 3, display: 'flex', justifyContent: 'flex-end'}}>
-                            <Button onClick={()=>setIsDeleteConfirmModalOpen(true)} >
+                            <Button onClick={async() => {
+                                setIsDeleteConfirmModalOpen(true)
+                            }}>
                                 Smazat
                             </Button>
                             <Button onClick={handleSubmit} disabled={loading}>

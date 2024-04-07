@@ -53,6 +53,11 @@ export const GroupStoreModel = types
             }
             return self.groups[groupIndex]
         },
+        deleteGroupItem(groupIndex: number, groupItemIndex: number){
+            if (groupIndex !== -1) {
+                self.groups[groupIndex].deleteGroupItem(groupItemIndex)
+            }
+        },
         getGroupIndex(group: GroupSnapshotIn){
             return  self.groups.findIndex(g => g.groupId === group.groupId);
         }

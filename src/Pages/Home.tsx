@@ -463,6 +463,18 @@ export const Home = observer(function Home() {
         return true
     }
 
+    const deleteGroupItem = async ( groupIndex: number, groupItemIndex: number) => {
+
+        await apiService.deleteGroupItem({
+            itemId: groupStore.groups[groupIndex].groupItems[groupItemIndex].id,
+        })
+
+        runInAction(() => {
+            groupStore.deleteGroupItem(groupIndex, groupItemIndex)
+        })
+        return true
+    }
+
     const encryptData = async (groupIndex: number, data: string): Promise<{ ciphertext: string, iv: string }> => {
 
         const provider = Provider.deserialize(userStore.me.keyStore);
@@ -790,7 +802,10 @@ export const Home = observer(function Home() {
                     return true
                 }}
                 onFeedback={(type, message) => setFeedback({type, message})}
-                onDeleteItem={async ()=>{return true}}
+                onDeleteItem={async () => {
+                    await deleteGroupItem(selectedGroupIndex, selectedGroupItemIndex)
+                    return true
+                }}
             />
             <Box
                 sx={{

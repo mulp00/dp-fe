@@ -58,6 +58,11 @@ export const GroupModel = types
             }
             return self.groupItems[groupItemIndex]
         },
+        deleteGroupItem( groupItemIndex: number){
+            if (groupItemIndex !== -1) {
+                self.groupItems.splice(groupItemIndex, 1)
+            }
+        },
     })) // eslint-disable-line @typescript-eslint/no-unused-vars
 
 export interface Group extends Instance<typeof GroupModel> {
