@@ -213,11 +213,14 @@ const ResponsiveAppBar: FC = observer(function ResponsiveAppBar() {
                                     icon={<LogoutIcon/>}
                                     tooltipTitle={'Odhlásit'}
                                     onClick={async () => {
-                                        await apiService.logout()
-                                        clear(); //  authStore's method to clear the session
-                                        await storageClear(); // Clearing storage
-                                        apiService.removeAuthToken()
-                                        navigate('/login'); // Redirecting to login page
+                                        try {
+                                            await apiService.logout()
+                                        } finally {
+                                            clear(); //  authStore's method to clear the session
+                                            await storageClear(); // Clearing storage
+                                            apiService.removeAuthToken()
+                                            navigate('/login'); // Redirecting to login page
+                                        }
                                     }}
                                 />
                                 <SpeedDialAction
@@ -247,11 +250,14 @@ const ResponsiveAppBar: FC = observer(function ResponsiveAppBar() {
                                 {settings.map((setting) => (
                                     <MenuItem key={setting} onClick={async () => {
                                         if (setting === 'Logout') {
-                                            await apiService.logout()
-                                            clear(); //  authStore's method to clear the session
-                                            await storageClear(); // Clearing storage
-                                            apiService.removeAuthToken() // remove auth header
-                                            navigate('/login'); // Redirecting to login page
+                                            try {
+                                                await apiService.logout()
+                                            } finally {
+                                                clear(); //  authStore's method to clear the session
+                                                await storageClear(); // Clearing storage
+                                                apiService.removeAuthToken() // remove auth header
+                                                navigate('/login'); // Redirecting to login page
+                                            }
                                         }
                                         handleCloseUserMenu()
                                     }}>

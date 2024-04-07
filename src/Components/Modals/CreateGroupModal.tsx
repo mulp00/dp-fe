@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
 import { observer } from "mobx-react";
-import { Box, Button, CircularProgress, FormControl, Modal, TextField, Typography } from "@mui/material";
+import {Box, Button, CircularProgress, FormControl, IconButton, Modal, TextField, Typography} from "@mui/material";
+import CloseIcon from "@mui/icons-material/Close";
 
 export type CreateGroupModalProps = {
     isOpen: boolean;
-    handleClose: () => void;
-    handleSubmit: (name: string) => Promise<void>;
+    onHandleClose: () => void;
+    onHandleSubmit: (name: string) => Promise<void>;
     onFeedback: (type: 'success' | 'error', message: string) => void;
 };
 
-export const CreateGroupModal = observer(function CreateGroupModal({ isOpen, handleClose, handleSubmit, onFeedback }: CreateGroupModalProps) {
+export const CreateGroupModal = observer(function CreateGroupModal({ isOpen, onHandleClose, onHandleSubmit, onFeedback }: CreateGroupModalProps) {
     const [loading, setLoading] = useState(false);
     const [groupName, setGroupName] = useState("");
     const [groupNameError, setGroupNameError] = useState("");
@@ -30,7 +31,7 @@ export const CreateGroupModal = observer(function CreateGroupModal({ isOpen, han
         }
         setLoading(true);
         try {
-            await handleSubmit(groupName);
+            await onHandleSubmit(groupName);
             onFeedback('success', 'Skupina vytvořena');
         } catch (error) {
             onFeedback('error', 'Něco se pokazilo');
@@ -42,7 +43,7 @@ export const CreateGroupModal = observer(function CreateGroupModal({ isOpen, han
 
     const handleCloseModal = () => {
         if (!loading) { // Prevent closing if loading
-            handleClose();
+            onHandleClose();
             setTimeout(() => {
                 setGroupName("");
                 setGroupNameError("");
@@ -69,6 +70,9 @@ export const CreateGroupModal = observer(function CreateGroupModal({ isOpen, han
             aria-describedby="modal-modal-description"
         >
             <Box sx={style}>
+                <IconButton sx={{position: "fixed", top: 5, right: 5}} onClick={onHandleClose}>
+                    <CloseIcon/>
+                </IconButton>
                 <FormControl fullWidth>
                     <Typography id="modal-modal-title" variant="h6" component="h2">
                         Vytvořit novou skupinu
@@ -86,7 +90,6 @@ export const CreateGroupModal = observer(function CreateGroupModal({ isOpen, han
                         helperText={groupNameError}
                     />
                     <Box display="flex" justifyContent="space-between" mt={2}>
-                        <Button variant="outlined" onClick={handleCloseModal}>Zrušit</Button>
                         <Button variant="contained" onClick={handleFormSubmit} disabled={loading}>
                             {loading ? <CircularProgress size={24} /> : 'Vytvořit'}
                         </Button>

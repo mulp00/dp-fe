@@ -1,12 +1,13 @@
 import React, {useEffect, useState} from 'react';
-import {Box, Button, CircularProgress, Modal, TextField, Typography} from '@mui/material';
+import {Box, Button, CircularProgress, IconButton, Modal, TextField, Typography} from '@mui/material';
 import {z} from 'zod';
 import {GroupItemSnapshotIn} from "../../models/GroupItem/GroupItemModel";
 import {useStores} from "../../models/helpers/useStores";
+import CloseIcon from '@mui/icons-material/Close';
 
 interface AddItemModalProps {
     isOpen: boolean;
-    handleClose: () => void;
+    onHandleClose: () => void;
     groupIndex: number;
     type: string;
     onItemCreate: (groupIndex: number, groupItem: GroupItemSnapshotIn) => Promise<boolean>;
@@ -31,7 +32,7 @@ export const cardSchema = z.object({
 
 export const AddItemModal: React.FC<AddItemModalProps> = ({
                                                               isOpen,
-                                                              handleClose,
+                                                              onHandleClose,
                                                               groupIndex,
                                                               type,
                                                               onItemCreate,
@@ -50,7 +51,7 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
     });
     const [loading, setLoading] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
-    const {groupStore}= useStores()
+    const {groupStore} = useStores()
 
     useEffect(() => {
         if (!isOpen) {
@@ -163,7 +164,7 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
             notes: '',
             description: ''
         });
-        handleClose();
+        onHandleClose();
     };
 
     const handleUsernameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -187,8 +188,11 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
     };
 
     return (
-        <Modal open={isOpen} onClose={handleClose}>
+        <Modal open={isOpen} onClose={onHandleClose}>
             <Box sx={style}>
+                <IconButton sx={{position: "fixed", top: 5, right: 5}} onClick={onHandleClose}>
+                    <CloseIcon/>
+                </IconButton>
                 <Typography id="modal-title" variant="h6" component="h2">
                     Přidat novou položku
                 </Typography>
@@ -205,7 +209,10 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
                             />
                             <TextField fullWidth margin="normal" label="Heslo"
                                        value={loginDetails.password}
-                                       onChange={(e) => setLoginDetails({...loginDetails, password: e.target.value})}
+                                       onChange={(e) => setLoginDetails({
+                                           ...loginDetails,
+                                           password: e.target.value
+                                       })}
                                        error={!!errors.password}
                                        helperText={errors.password || ''}
                             />
@@ -227,13 +234,19 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
                         <>
                             <TextField fullWidth margin="normal" label="Číslo karty"
                                        value={cardDetails.cardNumber}
-                                       onChange={(e) => setCardDetails({...cardDetails, cardNumber: e.target.value})}
+                                       onChange={(e) => setCardDetails({
+                                           ...cardDetails,
+                                           cardNumber: e.target.value
+                                       })}
                                        error={!!errors.cardNumber}
                                        helperText={errors.cardNumber || ''}
                             />
                             <TextField fullWidth margin="normal" label="Datum expirace"
                                        value={cardDetails.expiration}
-                                       onChange={(e) => setCardDetails({...cardDetails, expiration: e.target.value})}
+                                       onChange={(e) => setCardDetails({
+                                           ...cardDetails,
+                                           expiration: e.target.value
+                                       })}
                                        error={!!errors.expiration}
                                        helperText={errors.expiration || ''}
                             />

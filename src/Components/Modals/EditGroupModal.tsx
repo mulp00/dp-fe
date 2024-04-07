@@ -1,7 +1,6 @@
 import React, {useMemo, useState} from 'react';
 import {observer} from "mobx-react";
-import {Autocomplete, Box, Button, Modal, Stack, TextField, Typography} from "@mui/material";
-import {GroupSnapshotIn} from "../../models/Group/GroupModel";
+import {Autocomplete, Box, Button, IconButton, Modal, Stack, TextField, Typography} from "@mui/material";
 import {User} from "../../models/User/UserModel";
 import {DataGrid, GridColDef, GridRenderCellParams} from "@mui/x-data-grid";
 import {useApiService} from "../../hooks";
@@ -11,16 +10,18 @@ import {ConfirmModal} from "./ConfirmModal";
 import {Group as MlsGroup, Identity, Provider} from "../../utils/crypto/openmls";
 import {useStores} from "../../models/helpers/useStores";
 import {runInAction} from "mobx";
+import CloseIcon from "@mui/icons-material/Close";
 
 export type EditGroupModalProps = {
     isOpen: boolean;
-    handleClose: () => void;
+    onHandleClose: () => void;
     groupIndex: number;
     me: User
-    handleAddUser: (member: MemberSnapshotIn, groupIndex: number) => Promise<boolean>
-    handleRemoveUser: (member: MemberSnapshotIn, groupIndex: number) => Promise<boolean>
-    handleLeaveGroup: (groupIndex: number) => Promise<boolean>
+    onHandleAddUser: (member: MemberSnapshotIn, groupIndex: number) => Promise<boolean>
+    onHandleRemoveUser: (member: MemberSnapshotIn, groupIndex: number) => Promise<boolean>
+    onHandleLeaveGroup: (groupIndex: number) => Promise<boolean>
     onFeedback: (type: 'success' | 'error', message: string) => void;
+    onHandleGroupDelete: (groupIndex: number) => Promise<void>
 };
 
 export const EditGroupModal = observer(function EditGroupModal(props: EditGroupModalProps) {
@@ -35,6 +36,7 @@ export const EditGroupModal = observer(function EditGroupModal(props: EditGroupM
 
     const [isLeaveGroupModalOpen, setIsLeaveGroupModalOpen] = useState<boolean>(false)
     const [isRemoveUserFromGroupModalOpen, setIsRemoveUserFromGroupModalOpen] = useState<boolean>(false)
+    const [isDeleteGroupModalOpen, setIsDeleteGroupModalOpen] = useState<boolean>(false)
 
     const [userToRemove, setUserToRemove] = useState<MemberSnapshotIn | null>(null);
 
@@ -55,26 +57,34 @@ export const EditGroupModal = observer(function EditGroupModal(props: EditGroupM
 
     const handleAddButtonClick = async () => {
         if (selectedUser) {
-            await props.handleAddUser(selectedUser, props.groupIndex);
+            await props.onHandleAddUser(selectedUser, props.groupIndex);
             setSelectedUser(null)
         }
     };
 
     const handleRemoveUserConfirmation = async () => {
-        if(userToRemove) {
-            const success = await props.handleRemoveUser(userToRemove, props.groupIndex);
-            if(success) {
-                // Optionally close the modal and reset state here
+        if (userToRemove) {
+            try{
+                await props.onHandleRemoveUser(userToRemove, props.groupIndex);
                 setIsRemoveUserFromGroupModalOpen(false);
                 setUserToRemove(null);
+            }catch {
+                props.onFeedback("error", "Něco se nepovedlo")
             }
-            // Handle failure or additional logic here
+        }
+    };
+    const handleGroupDelete = async () => {
+        try {
+            await props.onHandleGroupDelete(props.groupIndex);
+            closeModal()
+        }catch {
+            props.onFeedback("error", "Něco se nepovedlo")
         }
     };
 
 
     const closeModal = () => {
-        props.handleClose();
+        props.onHandleClose();
         setTimeout(() => {
             setFoundUsers(undefined)
             setSelectedUser(null)
@@ -198,7 +208,7 @@ export const EditGroupModal = observer(function EditGroupModal(props: EditGroupM
                 <ConfirmModal
                     isOpen={isLeaveGroupModalOpen}
                     onHandleClose={() => setIsLeaveGroupModalOpen(false)}
-                    onHandleSubmit={() => props.handleLeaveGroup(props.groupIndex)}
+                    onHandleSubmit={() => props.onHandleLeaveGroup(props.groupIndex)}
                     title="Opustit skupinu"
                     text="Opravdu checete opsutit skupinu? Nebude znovu možné se do ní přidat! Pokud se budete chtít do skupiny znovu přidat, požádejte jiného člena o odebrání."
                     confirmText="Opustit"
@@ -208,14 +218,27 @@ export const EditGroupModal = observer(function EditGroupModal(props: EditGroupM
                 <ConfirmModal
                     isOpen={isRemoveUserFromGroupModalOpen}
                     onHandleClose={() => setIsRemoveUserFromGroupModalOpen(false)}
-                    onHandleSubmit={handleRemoveUserConfirmation} // HERE IS THE INCOMPLETE FUNCTINO CALL
+                    onHandleSubmit={handleRemoveUserConfirmation}
                     title="Odebrat uživatele"
                     text="Jste si jisti, že chcete uživatele odebrat? Bude možné ho následně znovu přidat!"
                     confirmText="Odebrat"
                     successMessage="Uživatel odebrán"
                     onFeedback={props.onFeedback}
                 />
+                <ConfirmModal
+                    isOpen={isDeleteGroupModalOpen}
+                    onHandleClose={() => setIsDeleteGroupModalOpen(false)}
+                    onHandleSubmit={handleGroupDelete}
+                    title="Smazat skupinu"
+                    text="Jste si jisti, že chcete skupinu smazat?"
+                    confirmText="Smazat"
+                    successMessage="Skupina smazána"
+                    onFeedback={props.onFeedback}
+                />
                 <Box sx={style}>
+                    <IconButton sx={{position: "fixed", top: 5, right: 5}} onClick={closeModal}>
+                        <CloseIcon/>
+                    </IconButton>
                     <Typography id="modal-modal-title" variant="h6" component="h2">
                         Editovat skupinu
                     </Typography>
@@ -243,11 +266,16 @@ export const EditGroupModal = observer(function EditGroupModal(props: EditGroupM
                     </Box>
 
                     <Box display="flex" justifyContent="space-between" mt={2}>
-                        <Button variant="outlined" onClick={closeModal}>Zrušit</Button>
                         <Button variant="outlined" startIcon={<LockResetIcon/>}
                                 onClick={() => setIsRefreshKeyModalOpen(true)}>
                             Přegenerovat skupinový klíč
                         </Button>
+                        {userStore.me.email === groupStore.groups[props.groupIndex]?.creator.email &&
+                            <Button variant="contained" color="error"
+                                    onClick={() => setIsDeleteGroupModalOpen(true)}>
+                                Smazat skupinu
+                            </Button>
+                        }
                     </Box>
 
                 </Box>

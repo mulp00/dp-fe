@@ -174,6 +174,9 @@ export interface UpdateGroupItemPayload {
 export interface DeleteGroupItemPayload{
     itemId: string;
 }
+export interface DeleteGroupPayload{
+    groupId: string;
+}
 
 export interface GroupItemResponse {
     id: string;
@@ -459,6 +462,13 @@ class ApiService {
     }
     public async deleteGroupItem(payload: DeleteGroupItemPayload): Promise<string> {
         return this.axiosInstance.post<string>(`/deleteGroupItem`, payload, {
+            headers: {
+                "Content-type": "application/ld+json"
+            }
+        }).then(response => response.data);
+    }
+    public async deleteGroup(payload: DeleteGroupPayload): Promise<string> {
+        return this.axiosInstance.post<string>(`/deleteGroup`, payload, {
             headers: {
                 "Content-type": "application/ld+json"
             }

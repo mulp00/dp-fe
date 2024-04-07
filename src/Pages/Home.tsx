@@ -475,6 +475,16 @@ export const Home = observer(function Home() {
         return true
     }
 
+    const deleteGroup = async (groupIndex: number)=>{
+
+        await apiService.deleteGroup({groupId: groupStore.groups[groupIndex].groupId})
+
+        runInAction(() => {
+            groupStore.deleteGroup(groupIndex)
+        })
+
+    }
+
     const encryptData = async (groupIndex: number, data: string): Promise<{ ciphertext: string, iv: string }> => {
 
         const provider = Provider.deserialize(userStore.me.keyStore);
@@ -770,23 +780,24 @@ export const Home = observer(function Home() {
             />
             <CreateGroupModal
                 isOpen={isCreateGroupModalOpen}
-                handleClose={() => setIsCreateGroupModalOpen(false)}
-                handleSubmit={createGroup}
+                onHandleClose={() => setIsCreateGroupModalOpen(false)}
+                onHandleSubmit={createGroup}
                 onFeedback={(type, message) => setFeedback({type, message})}
             />
             <EditGroupModal
                 isOpen={isEditGroupModalOpen}
-                handleClose={() => setIsEditGroupModalOpen(false)}
+                onHandleClose={() => setIsEditGroupModalOpen(false)}
                 groupIndex={editedGroupIndex}
                 me={userStore.me}
-                handleAddUser={addUser}
-                handleRemoveUser={removeUser}
-                handleLeaveGroup={leaveGroup}
+                onHandleAddUser={addUser}
+                onHandleRemoveUser={removeUser}
+                onHandleLeaveGroup={leaveGroup}
                 onFeedback={(type, message) => setFeedback({type, message})}
+                onHandleGroupDelete={async()=>deleteGroup(selectedGroupIndex)}
             />
             <AddItemModal
                 isOpen={isAddGroupItemModalOpen}
-                handleClose={() => setIsAddGroupItemModalOpen(false)}
+                onHandleClose={() => setIsAddGroupItemModalOpen(false)}
                 groupIndex={selectedGroupIndex}
                 onItemCreate={createNewGroupItem}
                 type={addItemType}
