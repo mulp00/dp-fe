@@ -4,13 +4,14 @@ import {z} from 'zod';
 import {GroupItemSnapshotIn} from "../../models/GroupItem/GroupItemModel";
 import {useStores} from "../../models/helpers/useStores";
 import CloseIcon from '@mui/icons-material/Close';
+import {Group} from "../../models/Group/GroupModel";
 
 interface AddItemModalProps {
     isOpen: boolean;
     onHandleClose: () => void;
-    groupIndex: number;
+    group: Group;
     type: string;
-    onItemCreate: (groupIndex: number, groupItem: GroupItemSnapshotIn) => Promise<boolean>;
+    onItemCreate: (group: Group, groupItem: GroupItemSnapshotIn) => Promise<boolean>;
     onFeedback: (type: 'success' | 'error', message: string) => void;
 }
 
@@ -33,7 +34,7 @@ export const cardSchema = z.object({
 export const AddItemModal: React.FC<AddItemModalProps> = ({
                                                               isOpen,
                                                               onHandleClose,
-                                                              groupIndex,
+                                                              group,
                                                               type,
                                                               onItemCreate,
                                                               onFeedback
@@ -138,7 +139,7 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
 
             const item: GroupItemSnapshotIn = {
                 name,
-                groupId: groupStore.groups[groupIndex].groupId,
+                groupId: group.groupId,
                 type,
                 content: {ciphertext, iv: ""},
                 itemId: "",
@@ -146,7 +147,7 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
                 decrypted: true,
             };
 
-            const success = await onItemCreate(groupIndex, item);
+            const success = await onItemCreate(group, item);
             if (success) {
                 onFeedback('success', 'Položka byla úspěšně přidána.');
                 resetForm();
@@ -159,6 +160,7 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
             } else {
                 onFeedback('error', 'Došlo k neočekávané chybě.');
             }
+            console.error(error)
         } finally {
             setLoading(false);
         }

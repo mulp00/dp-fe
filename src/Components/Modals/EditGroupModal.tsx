@@ -11,24 +11,25 @@ import {Group as MlsGroup, Identity, Provider} from "../../utils/crypto/openmls"
 import {useStores} from "../../models/helpers/useStores";
 import {runInAction} from "mobx";
 import CloseIcon from "@mui/icons-material/Close";
+import {Group} from "../../models/Group/GroupModel";
 
 export type EditGroupModalProps = {
     isOpen: boolean;
     onHandleClose: () => void;
-    groupIndex: number;
+    group: Group;
     me: User
-    onHandleAddUser: (member: MemberSnapshotIn, groupIndex: number) => Promise<boolean>
-    onHandleRemoveUser: (member: MemberSnapshotIn, groupIndex: number) => Promise<boolean>
-    onHandleLeaveGroup: (groupIndex: number) => Promise<boolean>
+    onHandleAddUser: (member: MemberSnapshotIn, group: Group) => Promise<boolean>
+    onHandleRemoveUser: (member: MemberSnapshotIn, group: Group) => Promise<boolean>
+    onHandleLeaveGroup: (group: Group) => Promise<boolean>
     onFeedback: (type: 'success' | 'error', message: string) => void;
-    onHandleGroupDelete: (groupIndex: number) => Promise<void>
-    onRotateGroupKey: (groupIndex: number)=>Promise<void>
+    onHandleGroupDelete: (group: Group) => Promise<void>
+    onRotateGroupKey: (group: Group)=>Promise<void>
 };
 
 export const EditGroupModal = observer(function EditGroupModal(props: EditGroupModalProps) {
     const apiService = useApiService()
 
-    const {userStore, groupStore} = useStores()
+    const {userStore} = useStores()
 
     const [foundUsers, setFoundUsers] = useState<MemberSnapshotIn[] | undefined>()
     const [selectedUser, setSelectedUser] = useState<MemberSnapshotIn | null>(null);
@@ -45,7 +46,7 @@ export const EditGroupModal = observer(function EditGroupModal(props: EditGroupM
         if (value.trim()) {
             const users = await apiService.getUsersByEmail({email: value})
             const filteredUsers = users.filter(user =>
-                !groupStore.groups[props.groupIndex].users?.some(groupUser => groupUser.email === user.email)
+                !props.group.users.some(groupUser => groupUser.email === user.email)
             );
 
             setFoundUsers(filteredUsers);
@@ -58,7 +59,7 @@ export const EditGroupModal = observer(function EditGroupModal(props: EditGroupM
 
     const handleAddButtonClick = async () => {
         if (selectedUser) {
-            await props.onHandleAddUser(selectedUser, props.groupIndex);
+            await props.onHandleAddUser(selectedUser, props.group);
             setSelectedUser(null)
         }
     };
@@ -66,7 +67,7 @@ export const EditGroupModal = observer(function EditGroupModal(props: EditGroupM
     const handleRemoveUserConfirmation = async () => {
         if (userToRemove) {
             try{
-                await props.onHandleRemoveUser(userToRemove, props.groupIndex);
+                await props.onHandleRemoveUser(userToRemove, props.group);
                 setIsRemoveUserFromGroupModalOpen(false);
                 setUserToRemove(null);
             }catch {
@@ -76,7 +77,7 @@ export const EditGroupModal = observer(function EditGroupModal(props: EditGroupM
     };
     const handleGroupDelete = async () => {
         try {
-            await props.onHandleGroupDelete(props.groupIndex);
+            await props.onHandleGroupDelete(props.group);
             closeModal()
         }catch {
             props.onFeedback("error", "Něco se nepovedlo")
@@ -123,7 +124,7 @@ export const EditGroupModal = observer(function EditGroupModal(props: EditGroupM
             headerName: 'Akce',
             width: 150,
             renderCell: (params: GridRenderCellParams<Member>) => (
-                params.value.email === groupStore.groups[props.groupIndex]?.creator.email ?
+                params.value.email === props.group.creator.email ?
                     <Button variant="outlined" disabled color="error">Zakázáno</Button> :
                     params.value.email === props.me.email ?
                         <Button variant="outlined" onClick={() => setIsLeaveGroupModalOpen(true)}
@@ -137,7 +138,7 @@ export const EditGroupModal = observer(function EditGroupModal(props: EditGroupM
         }
     ];
 
-    const rows = groupStore.groups[props.groupIndex]?.users?.map(user => ({
+    const rows = props.group.users?.map(user => ({
         id: user.email,
         user: user,
         action: user // The whole user object is passed for rendering logic in the `action` column
@@ -152,7 +153,7 @@ export const EditGroupModal = observer(function EditGroupModal(props: EditGroupM
                 <ConfirmModal
                     isOpen={isRefreshKeyModalOpen}
                     onHandleClose={() => setIsRefreshKeyModalOpen(false)}
-                    onHandleSubmit={() => props.onRotateGroupKey(props.groupIndex)}
+                    onHandleSubmit={() => props.onRotateGroupKey(props.group)}
                     title="Aktualizovat skupinový klíč"
                     text="Pokud máte pochyby, zda nedošlo ke kompromitaci skupiny nebo vašeho klíče ve skupině, vygenerujte nový!"
                     confirmText="Vygenerovat"
@@ -162,7 +163,7 @@ export const EditGroupModal = observer(function EditGroupModal(props: EditGroupM
                 <ConfirmModal
                     isOpen={isLeaveGroupModalOpen}
                     onHandleClose={() => setIsLeaveGroupModalOpen(false)}
-                    onHandleSubmit={() => props.onHandleLeaveGroup(props.groupIndex)}
+                    onHandleSubmit={() => props.onHandleLeaveGroup(props.group)}
                     title="Opustit skupinu"
                     text="Opravdu checete opsutit skupinu? Nebude znovu možné se do ní přidat! Pokud se budete chtít do skupiny znovu přidat, požádejte jiného člena o odebrání."
                     confirmText="Opustit"
@@ -224,7 +225,7 @@ export const EditGroupModal = observer(function EditGroupModal(props: EditGroupM
                                 onClick={() => setIsRefreshKeyModalOpen(true)}>
                             Přegenerovat skupinový klíč
                         </Button>
-                        {userStore.me.email === groupStore.groups[props.groupIndex]?.creator.email &&
+                        {userStore.me.email === props.group.creator.email &&
                             <Button variant="contained" color="error"
                                     onClick={() => setIsDeleteGroupModalOpen(true)}>
                                 Smazat skupinu

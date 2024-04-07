@@ -1,26 +1,27 @@
 import React, {useEffect, useState} from 'react';
 import {Box, Button, CircularProgress, IconButton, Modal, TextField, Typography} from '@mui/material';
-import {GroupItemSnapshotIn} from "../../models/GroupItem/GroupItemModel";
+import {GroupItem, GroupItemSnapshotIn} from "../../models/GroupItem/GroupItemModel";
 import {cardSchema, loginSchema} from "./AddItemModal";
 import {useStores} from "../../models/helpers/useStores";
 import {ConfirmModal} from "./ConfirmModal";
 import CloseIcon from "@mui/icons-material/Close";
+import {Group} from "../../models/Group/GroupModel";
 
 interface ItemDetailModalProps {
     isOpen: boolean;
     onHandleClose: () => void;
-    itemIndex: number;
-    groupIndex: number;
+    groupItem: GroupItem;
+    group: Group;
     onUpdateItem: (groupItem: GroupItemSnapshotIn) => Promise<boolean>;
     onFeedback: (type: 'success' | 'error', message: string) => void;
-    onDeleteItem: (groupItemIndex: number) => Promise<boolean>
+    onDeleteItem: (groupItem: GroupItem) => Promise<boolean>
 }
 
 export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                                                                     isOpen,
                                                                     onHandleClose,
-                                                                    itemIndex,
-                                                                    groupIndex,
+                                                                    groupItem,
+                                                                    group,
                                                                     onUpdateItem,
                                                                     onFeedback,
                                                                     onDeleteItem
@@ -35,7 +36,6 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
     useEffect(() => {
         if (isOpen) {
             try {
-                const groupItem = groupStore.groups[groupIndex]?.groupItems[itemIndex];
                 const parsedContent = groupItem?.content ? JSON.parse(groupItem.content.ciphertext) : {};
                 setDetails({
                     ...parsedContent,
@@ -47,14 +47,14 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                 onFeedback('error', 'Chyba při načítání detailů položky.');
             }
         }
-    }, [isOpen, groupIndex, itemIndex, groupStore.groups]);
+    }, [isOpen, group, groupItem, groupStore.groups]);
 
 
     const handleSubmit = async () => {
         setLoading(true);
         setErrors({}); // Reset errors before validation
 
-        const schema = groupStore.groups[groupIndex].groupItems[itemIndex].type === 'login' ? loginSchema : cardSchema;
+        const schema = groupItem.type === 'login' ? loginSchema : cardSchema;
         const validationResult = schema.safeParse(details);
         if (!validationResult.success) {
             // Accumulate all errors into the errors state
@@ -69,8 +69,8 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
 
         try {
             const updatedItem: GroupItemSnapshotIn = {
-                ...groupStore.groups[groupIndex].groupItems[itemIndex],
-                content: {ciphertext: JSON.stringify(validationResult.data), iv: groupStore.groups[groupIndex].groupItems[itemIndex].content.iv},
+                ...groupItem,
+                content: {ciphertext: JSON.stringify(validationResult.data), iv: groupItem.content.iv},
                 name: details.name,
                 description: details.description
             };
@@ -122,7 +122,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                         closeModal()
                     }}
                     onHandleSubmit={async ()=> {
-                        await onDeleteItem(itemIndex)
+                        await onDeleteItem(groupItem)
                     }}
                     title={"Opravdu chcete položku smazat"}
                     text={""}
@@ -158,7 +158,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                             error={!!errors?.description}
                             helperText={errors?.description || ''}
                         />
-                        {groupStore.groups[groupIndex]?.groupItems[itemIndex]?.type === 'login' && (
+                        {groupItem.type === 'login' && (
                             <>
                                 <TextField
                                     fullWidth
@@ -189,7 +189,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                                 />
                             </>
                         )}
-                        {groupStore.groups[groupIndex]?.groupItems[itemIndex]?.type === 'card' && (
+                        {groupItem.type === 'card' && (
                             <>
                                 <TextField
                                     fullWidth
