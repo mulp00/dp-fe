@@ -59,6 +59,7 @@ export const Home = observer(function Home() {
     const [addItemType, setAddItemType] = useState<string>("")
     const [selectedGroupItemIndex, setSelectedGroupItemIndex] = useState<number>(0)
 
+    const [searchTerm, setSearchTerm] = useState('');
 
     const [feedBack, setFeedback] = useState<{ type: "success" | "error", message: string } | null | undefined>()
 
@@ -714,13 +715,30 @@ export const Home = observer(function Home() {
         },
     ];
 
+    const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        setSearchTerm(event.target.value);
+    };
+
+    const filteredGroups = searchTerm.length === 0
+        ? groupStore.groups
+        : groupStore.groups.filter(group =>
+            group.name.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+
 
     const listContent = (
         <>
             <CardContent sx={{backgroundColor: "#dddddd", height: 40}}>
                 <Grid container>
                     <Grid item xs={10}>
-                        <TextField id="outlined-search" label="Hledání" type="search" size={"small"}/>
+                        <TextField
+                            id="outlined-search"
+                            label="Hledání"
+                            type="search"
+                            size={"small"}
+                            value={searchTerm}
+                            onChange={handleSearchChange}
+                        />
                     </Grid>
                     <Grid item xs={1}>
                         <Tooltip title="Přidat skupinu">
@@ -734,7 +752,7 @@ export const Home = observer(function Home() {
             </CardContent>
             <CardContent>
                 <List>
-                    {groupStore.groups.map((group, index) => (
+                    {filteredGroups.map((group, index) => (
                         <React.Fragment key={group.groupId /* Use group.id instead of index for key if possible */}>
                             <ListItemButton
                                 selected={groupStore.groups[selectedGroupIndex].groupId === group.groupId}
