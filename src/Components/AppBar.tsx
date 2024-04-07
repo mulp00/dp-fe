@@ -45,7 +45,11 @@ const ResponsiveAppBar: FC = observer(function ResponsiveAppBar() {
 
     const navigate = useNavigate();
 
-    const pages = isAuthenticated ? [] : ['Login', 'Register'];
+    const pages = isAuthenticated ? [] : [
+        { name: 'Login', path: '/login', translation: 'Přihlášení' },
+        { name: 'Register', path: '/register', translation: 'Registrace' }
+    ];
+
     const settings = ['Logout'];
 
     const [anchorElNav, setAnchorElNav] = React.useState<null | HTMLElement>(null);
@@ -53,9 +57,6 @@ const ResponsiveAppBar: FC = observer(function ResponsiveAppBar() {
 
     const [feedBack, setFeedback] = useState<{ type: "success" | "error", message: string } | null | undefined>()
 
-    const handleOpenUserMenu = (event: React.MouseEvent<HTMLElement>) => {
-        setAnchorElUser(event.currentTarget);
-    };
 
     const handleCloseUserMenu = () => {
         setAnchorElUser(null);
@@ -150,11 +151,11 @@ const ResponsiveAppBar: FC = observer(function ResponsiveAppBar() {
                             }}
                         >
                             {pages.map((page) => (
-                                <MenuItem key={page}>
+                                <MenuItem key={page.name}>
                                     <Typography textAlign="center" component={NavLink}
-                                                to={`/${page.replace(/\s+/g, '').toLowerCase()}`}
+                                                to={page.path} // Use path for navigation
                                                 sx={{color: 'text.primary', textDecoration: 'none'}}>
-                                        {page}
+                                        {page.translation}
                                     </Typography>
                                 </MenuItem>
                             ))}
@@ -181,19 +182,21 @@ const ResponsiveAppBar: FC = observer(function ResponsiveAppBar() {
                     </Typography>
                     {pages.map((page) => (
                         <Button
-                            key={page}
+                            key={page.name}
                             sx={{my: 2, color: 'white', display: 'block'}}
                             component={React.forwardRef((props, ref) => (
                                 <NavLink
-                                    to={`/${page.replace(/\s+/g, '').toLowerCase()}`}
+                                    to={page.path}
                                     style={({isActive}) => ({
                                         textDecoration: isActive ? 'underline' : 'none',
                                     })}
                                     {...props}
-                                />
+                                >
+                                    {page.translation}
+                                </NavLink>
                             ))}
                         >
-                            {page}
+                            {page.translation}
                         </Button>
                     ))}
 

@@ -486,6 +486,45 @@ export const Home = observer(function Home() {
 
     }
 
+    const rotateGroupKey = async (groupIndex: number) => {
+
+            const decryptedGroupItems = await decryptGroupItems(groupStore.groups[groupIndex].groupItems)
+
+            const provider = Provider.deserialize(userStore.me.keyStore)
+            const identity = Identity.deserialize(provider, userStore.me.serializedIdentity);
+
+            const deserializedGroup = MlsGroup.deserialize(groupStore.groups[groupIndex]?.serializedGroup);
+
+            const updateKeyMessage = deserializedGroup.update_key_package(provider, identity)
+
+            await apiService.postGeneralCommitMessage({
+                groupId: groupStore.groups[groupIndex]?.groupId,
+                message: updateKeyMessage.commit.toString(),
+                epoch: groupStore.groups[groupIndex]?.epoch
+            })
+
+            deserializedGroup.merge_pending_commit(provider)
+
+            const keyStoreToUpdate = JSON.stringify({...JSON.parse(provider.serialize()), ...JSON.parse(userStore.me.keyStore)})
+            await apiService.updateKeyStore({keyStore: keyStoreToUpdate})
+            runInAction(() => {
+                userStore.me.setKeyStore(keyStoreToUpdate)
+            });
+
+            const updateSerializedUserGroupResponse = await apiService.updateSerializedUserGroup({
+                serializedUserGroupId: groupStore.groups[groupIndex]?.serializedUserGroupId,
+                serializedUserGroup: deserializedGroup.serialize(),
+                epoch: groupStore.groups[groupIndex]?.epoch + 1,
+            });
+
+            groupStore.updateGroup(updateSerializedUserGroupResponse);
+
+            decryptedGroupItems.forEach((groupItem) => {
+                updateGroupItem(groupIndex, groupItem)
+            })
+
+    }
+
     const encryptData = async (groupIndex: number, data: string): Promise<{ ciphertext: string, iv: string }> => {
 
         const provider = Provider.deserialize(userStore.me.keyStore);
@@ -753,7 +792,7 @@ export const Home = observer(function Home() {
                     {filteredGroups.map((group, index) => (
                         <React.Fragment key={group.groupId /* Use group.id instead of index for key if possible */}>
                             <ListItemButton
-                                selected={groupStore.groups[selectedGroupIndex].groupId === group.groupId}
+                                selected={groupStore.groups[selectedGroupIndex]?.groupId === group.groupId}
                                 onClick={async () => {
                                     await loadGroupItems()
                                     setSelectedGroupIndex(groupStore.getGroupIndex(group))
@@ -810,6 +849,7 @@ export const Home = observer(function Home() {
                 onHandleLeaveGroup={leaveGroup}
                 onFeedback={(type, message) => setFeedback({type, message})}
                 onHandleGroupDelete={async () => deleteGroup(selectedGroupIndex)}
+                onRotateGroupKey={rotateGroupKey}
             />
             <AddItemModal
                 isOpen={isAddGroupItemModalOpen}

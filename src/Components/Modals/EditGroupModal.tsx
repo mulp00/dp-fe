@@ -22,6 +22,7 @@ export type EditGroupModalProps = {
     onHandleLeaveGroup: (groupIndex: number) => Promise<boolean>
     onFeedback: (type: 'success' | 'error', message: string) => void;
     onHandleGroupDelete: (groupIndex: number) => Promise<void>
+    onRotateGroupKey: (groupIndex: number)=>Promise<void>
 };
 
 export const EditGroupModal = observer(function EditGroupModal(props: EditGroupModalProps) {
@@ -91,53 +92,6 @@ export const EditGroupModal = observer(function EditGroupModal(props: EditGroupM
         }, 300); // Delay to allow modal close animation
     };
 
-    const rotateGroupKey = async () => {
-        try {
-            const provider = Provider.deserialize(userStore.me.keyStore)
-            const identity = Identity.deserialize(provider, userStore.me.serializedIdentity);
-
-            const deserializedGroup = MlsGroup.deserialize(groupStore.groups[props.groupIndex].serializedGroup);
-
-            const updateKeyMessage = deserializedGroup.update_key_package(provider, identity)
-
-            try {
-                await apiService.postGeneralCommitMessage({
-                    groupId: groupStore.groups[props.groupIndex].groupId,
-                    message: updateKeyMessage.commit.toString(),
-                    epoch: groupStore.groups[props.groupIndex].epoch
-                })
-            } catch (error) {
-                console.error("Failed to leave group", error);
-                return false;
-            }
-
-            deserializedGroup.merge_pending_commit(provider)
-
-            const keyStoreToUpdate = JSON.stringify({...JSON.parse(provider.serialize()), ...JSON.parse(userStore.me.keyStore)})
-            await apiService.updateKeyStore({keyStore: keyStoreToUpdate})
-            runInAction(() => {
-                userStore.me.setKeyStore(keyStoreToUpdate)
-            });
-
-            let updateSerializedUserGroupResponse;
-            try {
-                updateSerializedUserGroupResponse = await apiService.updateSerializedUserGroup({
-                    serializedUserGroupId: groupStore.groups[props.groupIndex].serializedUserGroupId,
-                    serializedUserGroup: deserializedGroup.serialize(),
-                    epoch: groupStore.groups[props.groupIndex].epoch + 1,
-                });
-            } catch (error) {
-                console.error("Failed to update serialized user group", error);
-                return false;
-            }
-
-            groupStore.updateGroup(updateSerializedUserGroupResponse);
-            return true
-        } catch (error) {
-            console.error("Unexpected error while removing user ", error);
-            return false;
-        }
-    }
 
 
     const style = {
@@ -198,7 +152,7 @@ export const EditGroupModal = observer(function EditGroupModal(props: EditGroupM
                 <ConfirmModal
                     isOpen={isRefreshKeyModalOpen}
                     onHandleClose={() => setIsRefreshKeyModalOpen(false)}
-                    onHandleSubmit={() => rotateGroupKey()}
+                    onHandleSubmit={() => props.onRotateGroupKey(props.groupIndex)}
                     title="Aktualizovat skupinový klíč"
                     text="Pokud máte pochyby, zda nedošlo ke kompromitaci skupiný nebo vašeho klíče ve skupině, vygenerujte nový!"
                     confirmText="Vygenerovat"

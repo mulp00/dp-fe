@@ -85,16 +85,16 @@ export const Login = observer(function Login() {
     };
 
     return (
-        <Box display="flex" alignItems="center" justifyContent="center" minHeight="75vh"> {/* Adjusted part */}
+        <Box display="flex" alignItems="center" justifyContent="center" minHeight="75vh">
             <Container component="main" maxWidth="xs">
-                <Typography component="h1" variant="h5">Login</Typography>
+                <Typography component="h1" variant="h5">Přihlášení</Typography>
                 <form onSubmit={handleSubmit}>
                     <TextField
                         variant="outlined"
                         margin="normal"
                         required
                         fullWidth
-                        label="Email Address"
+                        label="Email"
                         name="email"
                         autoComplete="email"
                         autoFocus
@@ -102,12 +102,12 @@ export const Login = observer(function Login() {
                         onChange={handleChange}
                     />
                     <FormControl fullWidth margin="normal">
-                        <InputLabel htmlFor="password">Password</InputLabel>
+                        <InputLabel htmlFor="password">Heslo</InputLabel>
                         <OutlinedInput
                             id="password"
                             required
                             fullWidth
-                            label="Password"
+                            label="Heslo"
                             name="password"
                             value={state.password}
                             onChange={handleChange}
@@ -132,7 +132,7 @@ export const Login = observer(function Login() {
                         margin="normal"
                         required
                         fullWidth
-                        label="TOTP Code"
+                        label="Ověřovací kód"
                         name="totp"
                         value={state.totp}
                         onChange={handleChange}
