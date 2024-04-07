@@ -3,19 +3,21 @@ import { Box, Button, CircularProgress, Modal, TextField, Typography } from '@mu
 import { GroupItemSnapshotIn } from "../../models/GroupItem/GroupItemModel";
 import { cardSchema, loginSchema } from "./AddItemModal";
 import { useStores } from "../../models/helpers/useStores";
+import {ConfirmModal} from "./ConfirmModal";
 
 interface ItemDetailModalProps {
     isOpen: boolean;
-    handleClose: () => void;
+    onHandleClose: () => void;
     itemIndex: number;
     groupIndex: number;
-    onUpdateItem: (itemDetail: GroupItemSnapshotIn) => Promise<boolean>;
+    onUpdateItem: (groupItem: GroupItemSnapshotIn) => Promise<boolean>;
     onFeedback: (type: 'success' | 'error', message: string) => void;
+    onDeleteItem: (groupItem: GroupItemSnapshotIn)=>Promise<boolean>
 }
 
 export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                                                                     isOpen,
-                                                                    handleClose,
+                                                                    onHandleClose,
                                                                     itemIndex,
                                                                     groupIndex,
                                                                     onUpdateItem,
@@ -25,6 +27,8 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
     const [loading, setLoading] = useState(false);
     const [errors, setErrors] = useState<Record<string, string> | null>({});
     const { groupStore } = useStores();
+
+    const [isDeleteConfirmModalOpen, setIsDeleteConfirmModalOpen] = useState<boolean>(false)
 
     useEffect(() => {
         if (isOpen) {
@@ -78,7 +82,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
             const success = await onUpdateItem(updatedItem);
             if (success) {
                 onFeedback('success', 'Položka byla úspěšně aktualizována.');
-                handleClose();
+                onHandleClose();
             } else {
                 onFeedback('error', 'Aktualizace položky selhala. Zkuste to prosím znovu.');
             }
@@ -105,115 +109,133 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
     };
 
     return (
-        <Modal open={isOpen} onClose={handleClose}>
-            <Box sx={style}>
-                <Typography id="modal-title" variant="h6" component="h2">
-                    Detail
-                </Typography>
-                <Box component="form" noValidate autoComplete="off" sx={{ mt: 2 }}>
-                    <TextField
-                        fullWidth
-                        margin="normal"
-                        label="Název"
-                        value={details?.name || ''}
-                        onChange={handleChange('name')}
-                        error={!!errors?.name}
-                        helperText={errors?.name || ''}
-                    />
-                    <TextField
-                        fullWidth
-                        margin="normal"
-                        label="Popis"
-                        value={details?.description || ''}
-                        onChange={handleChange('description')}
-                        error={!!errors?.description}
-                        helperText={errors?.description || ''}
-                    />
-                    {groupStore.groups[groupIndex]?.groupItems[itemIndex]?.type === 'login' && (
-                        <>
-                            <TextField
-                                fullWidth
-                                margin="normal"
-                                label="Uživatelské jméno"
-                                value={details?.username || ''}
-                                onChange={handleChange('username')}
-                                error={!!errors?.username}
-                                helperText={errors?.username || ''}
-                            />
-                            <TextField
-                                fullWidth
-                                margin="normal"
-                                label="Heslo"
-                                value={details?.password || ''}
-                                onChange={handleChange('password')}
-                                error={!!errors?.password}
-                                helperText={errors?.password || ''}
-                            />
-                            <TextField
-                                fullWidth
-                                margin="normal"
-                                label="Poznámky"
-                                value={details?.notes || ''}
-                                onChange={handleChange('notes')}
-                                error={!!errors?.notes}
-                                helperText={errors?.notes || ''}
-                            />
-                        </>
-                    )}
-                    {groupStore.groups[groupIndex]?.groupItems[itemIndex]?.type === 'card' && (
-                        <>
-                            <TextField
-                                fullWidth
-                                margin="normal"
-                                label="Číslo karty"
-                                value={details?.cardNumber || ''}
-                                onChange={handleChange('cardNumber')}
-                                error={!!errors?.cardNumber}
-                                helperText={errors?.cardNumber || ''}
-                            />
-                            <TextField
-                                fullWidth
-                                margin="normal"
-                                label="Datum expirace"
-                                value={details?.expiration || ''}
-                                onChange={handleChange('expiration')}
-                                error={!!errors?.expiration}
-                                helperText={errors?.expiration || ''}
-                            />
-                            <TextField
-                                fullWidth
-                                margin="normal"
-                                label="CVV"
-                                value={details?.cvv || ''}
-                                onChange={handleChange('cvv')}
-                                error={!!errors?.cvv}
-                                helperText={errors?.cvv || ''}
-                            />
-                            <TextField
-                                fullWidth
-                                margin="normal"
-                                label="Jméno držitele karty"
-                                value={details?.cardholderName || ''}
-                                onChange={handleChange('cardholderName')}
-                                error={!!errors?.cardholderName}
-                                helperText={errors?.cardholderName || ''}
-                            />
-                            <TextField
-                                fullWidth
-                                margin="normal"
-                                label="Poznámky"
-                                value={details?.notes || ''}
-                                onChange={handleChange('notes')}
-                                error={!!errors?.notes}
-                                helperText={errors?.notes || ''}
-                            />
-                        </>
-                    )}
+        <Modal open={isOpen} onClose={onHandleClose}>
+            <Box>
+                <ConfirmModal
+                    isOpen={isDeleteConfirmModalOpen}
+                    onHandleClose={()=>{
+                        setIsDeleteConfirmModalOpen(false)
+                        onHandleClose()
+                    }}
+                    onHandleSubmit={handleSubmit}
+                    title={"Opravdu chcete položku smazat"}
+                    text={""}
+                    successMessage={"Položka smazána"}
+                    onFeedback={onFeedback}
+                    confirmText="Smazat"
+                />
+                <Box sx={style}>
+                    <Typography id="modal-title" variant="h6" component="h2">
+                        Detail
+                    </Typography>
+                    <Box component="form" noValidate autoComplete="off" sx={{mt: 2}}>
+                        <TextField
+                            fullWidth
+                            margin="normal"
+                            label="Název"
+                            value={details?.name || ''}
+                            onChange={handleChange('name')}
+                            error={!!errors?.name}
+                            helperText={errors?.name || ''}
+                        />
+                        <TextField
+                            fullWidth
+                            margin="normal"
+                            label="Popis"
+                            value={details?.description || ''}
+                            onChange={handleChange('description')}
+                            error={!!errors?.description}
+                            helperText={errors?.description || ''}
+                        />
+                        {groupStore.groups[groupIndex]?.groupItems[itemIndex]?.type === 'login' && (
+                            <>
+                                <TextField
+                                    fullWidth
+                                    margin="normal"
+                                    label="Uživatelské jméno"
+                                    value={details?.username || ''}
+                                    onChange={handleChange('username')}
+                                    error={!!errors?.username}
+                                    helperText={errors?.username || ''}
+                                />
+                                <TextField
+                                    fullWidth
+                                    margin="normal"
+                                    label="Heslo"
+                                    value={details?.password || ''}
+                                    onChange={handleChange('password')}
+                                    error={!!errors?.password}
+                                    helperText={errors?.password || ''}
+                                />
+                                <TextField
+                                    fullWidth
+                                    margin="normal"
+                                    label="Poznámky"
+                                    value={details?.notes || ''}
+                                    onChange={handleChange('notes')}
+                                    error={!!errors?.notes}
+                                    helperText={errors?.notes || ''}
+                                />
+                            </>
+                        )}
+                        {groupStore.groups[groupIndex]?.groupItems[itemIndex]?.type === 'card' && (
+                            <>
+                                <TextField
+                                    fullWidth
+                                    margin="normal"
+                                    label="Číslo karty"
+                                    value={details?.cardNumber || ''}
+                                    onChange={handleChange('cardNumber')}
+                                    error={!!errors?.cardNumber}
+                                    helperText={errors?.cardNumber || ''}
+                                />
+                                <TextField
+                                    fullWidth
+                                    margin="normal"
+                                    label="Datum expirace"
+                                    value={details?.expiration || ''}
+                                    onChange={handleChange('expiration')}
+                                    error={!!errors?.expiration}
+                                    helperText={errors?.expiration || ''}
+                                />
+                                <TextField
+                                    fullWidth
+                                    margin="normal"
+                                    label="CVV"
+                                    value={details?.cvv || ''}
+                                    onChange={handleChange('cvv')}
+                                    error={!!errors?.cvv}
+                                    helperText={errors?.cvv || ''}
+                                />
+                                <TextField
+                                    fullWidth
+                                    margin="normal"
+                                    label="Jméno držitele karty"
+                                    value={details?.cardholderName || ''}
+                                    onChange={handleChange('cardholderName')}
+                                    error={!!errors?.cardholderName}
+                                    helperText={errors?.cardholderName || ''}
+                                />
+                                <TextField
+                                    fullWidth
+                                    margin="normal"
+                                    label="Poznámky"
+                                    value={details?.notes || ''}
+                                    onChange={handleChange('notes')}
+                                    error={!!errors?.notes}
+                                    helperText={errors?.notes || ''}
+                                />
+                            </>
+                        )}
 
-                    <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end' }}>
-                        <Button onClick={handleSubmit} disabled={loading}>
-                            {loading ? <CircularProgress size={24} /> : 'Aktualizovat'}
-                        </Button>
+                        <Box sx={{mt: 3, display: 'flex', justifyContent: 'flex-end'}}>
+                            <Button onClick={()=>setIsDeleteConfirmModalOpen(true)} >
+                                Smazat
+                            </Button>
+                            <Button onClick={handleSubmit} disabled={loading}>
+                                {loading ? <CircularProgress size={24}/> : 'Aktualizovat'}
+                            </Button>
+                        </Box>
                     </Box>
                 </Box>
             </Box>

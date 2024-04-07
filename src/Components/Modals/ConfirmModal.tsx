@@ -4,18 +4,27 @@ import React, {useState} from "react";
 
 export type ConfirmModalProps = {
     isOpen: boolean;
-    handleClose: () => any;
-    handleSubmit: () => any;
+    onHandleClose: () => any;
+    onHandleSubmit: () => any;
     title: string;
     text: string;
     confirmText?: string;
     successMessage: string;
+    onFeedback: (type: 'success' | 'error', message: string) => void;
 };
 
-export const ConfirmModal = observer(function ConfirmModal(props: ConfirmModalProps) {
+export const ConfirmModal = observer(function ConfirmModal({
+                                                               isOpen,
+                                                               onHandleClose,
+                                                               onHandleSubmit,
+                                                               title,
+                                                               text,
+                                                               confirmText,
+                                                               successMessage,
+                                                               onFeedback,
+                                                           }: ConfirmModalProps) {
 
-    const [state, setState] = useState<"ready" | "loading" | "success" | "error">("ready");
-    const [message, setMessage] = useState("");
+    const [state, setState] = useState<"ready" | "loading" >("ready");
 
     const style = {
         position: 'absolute' as 'absolute',
@@ -30,28 +39,28 @@ export const ConfirmModal = observer(function ConfirmModal(props: ConfirmModalPr
     };
 
     const handleSubmit = async () => {
-        if (!props.handleSubmit) {
+        if (!onHandleSubmit) {
             console.error("handleSubmit function is not provided");
             return;
         }
         setState("loading");
         try {
-            await props.handleSubmit();
-            setState("success");
-            setMessage(props.successMessage);
+            await onHandleSubmit();
+            onFeedback('success', successMessage)
+            handleClose()
         } catch (error) {
-            setState("error");
-            setMessage("Něco se pokazilo");
+            onFeedback('error', "Něco se pokazilo")
+            handleClose()
         }
     };
 
     const handleClose = () => {
         setState('ready')
-        props.handleClose()
+        onHandleClose()
     }
 
     return <Modal
-        open={props.isOpen}
+        open={isOpen}
         onClose={handleClose}
         aria-labelledby="modal-modal-title"
         aria-describedby="modal-modal-description"
@@ -60,16 +69,16 @@ export const ConfirmModal = observer(function ConfirmModal(props: ConfirmModalPr
             {state === "ready" && (
                 <Box>
                     <Typography id="modal-modal-title" variant="h6" component="h2">
-                        {props.title}
+                        {title}
                     </Typography>
                     <Typography id="modal-modal-description" sx={{mt: 2}}>
-                        {props.text}
+                        {text}
                     </Typography>
                     <Box display="flex" justifyContent="space-between" mt={2}>
                         <Button variant="outlined" onClick={handleClose}>Zavřít</Button>
-                        {props.confirmText && state === "ready" && (
+                        {confirmText && state === "ready" && (
                             <Button variant="contained" type="button" color="primary"
-                                    onClick={handleSubmit}>{props.confirmText}</Button>
+                                    onClick={handleSubmit}>{confirmText}</Button>
                         )}
                     </Box>
                 </Box>
@@ -77,22 +86,6 @@ export const ConfirmModal = observer(function ConfirmModal(props: ConfirmModalPr
             {state === "loading" && (
                 <Box display="flex" justifyContent="center">
                     <CircularProgress/>
-                </Box>
-            )}
-            {(state === "success") && (
-                <Box textAlign="center">
-                    <Typography variant="body1" sx={{mb: 2}}>
-                        {message}
-                    </Typography>
-                    <Button variant="contained" onClick={handleClose}>Zavřít</Button>
-                </Box>
-            )}
-            {(state === "error") && (
-                <Box textAlign="center">
-                    <Typography variant="body1" sx={{mb: 2}}>
-                        Něco se pokazilo
-                    </Typography>
-                    <Button variant="contained" onClick={handleClose}>Zavřít</Button>
                 </Box>
             )}
         </Box>

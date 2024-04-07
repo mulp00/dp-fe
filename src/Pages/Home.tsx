@@ -749,11 +749,12 @@ export const Home = observer(function Home() {
         <>
             <ConfirmModal
                 isOpen={isConfirmErrorUserAddModalOpen}
-                handleClose={() => setIsConfirmErrorUserAddModalOpen(false)}
-                handleSubmit={() => setIsConfirmErrorUserAddModalOpen(false)}
+                onHandleClose={() => setIsConfirmErrorUserAddModalOpen(false)}
+                onHandleSubmit={() => setIsConfirmErrorUserAddModalOpen(false)}
                 title="Nelze přidat uživatele"
                 text="Uživatel již jednou skupinu opustil. Není možné ho znovu přidat."
                 successMessage=""
+                onFeedback={(type, message) => setFeedback({type, message})}
             />
             <CreateGroupModal
                 isOpen={isCreateGroupModalOpen}
@@ -769,6 +770,7 @@ export const Home = observer(function Home() {
                 handleAddUser={addUser}
                 handleRemoveUser={removeUser}
                 handleLeaveGroup={leaveGroup}
+                onFeedback={(type, message) => setFeedback({type, message})}
             />
             <AddItemModal
                 isOpen={isAddGroupItemModalOpen}
@@ -780,7 +782,7 @@ export const Home = observer(function Home() {
             />
             <ItemDetailModal
                 isOpen={isItemDetailModalOpen}
-                handleClose={() => setIsItemDetailModalOpen(false)}
+                onHandleClose={() => setIsItemDetailModalOpen(false)}
                 itemIndex={selectedGroupItemIndex}
                 groupIndex={selectedGroupIndex}
                 onUpdateItem={async (itemDetail: GroupItemSnapshotIn) => {
@@ -788,6 +790,7 @@ export const Home = observer(function Home() {
                     return true
                 }}
                 onFeedback={(type, message) => setFeedback({type, message})}
+                onDeleteItem={async ()=>{return true}}
             />
             <Box
                 sx={{

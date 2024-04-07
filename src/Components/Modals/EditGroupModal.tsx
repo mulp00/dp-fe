@@ -20,6 +20,7 @@ export type EditGroupModalProps = {
     handleAddUser: (member: MemberSnapshotIn, groupIndex: number) => Promise<boolean>
     handleRemoveUser: (member: MemberSnapshotIn, groupIndex: number) => Promise<boolean>
     handleLeaveGroup: (groupIndex: number) => Promise<boolean>
+    onFeedback: (type: 'success' | 'error', message: string) => void;
 };
 
 export const EditGroupModal = observer(function EditGroupModal(props: EditGroupModalProps) {
@@ -186,30 +187,33 @@ export const EditGroupModal = observer(function EditGroupModal(props: EditGroupM
             <>
                 <ConfirmModal
                     isOpen={isRefreshKeyModalOpen}
-                    handleClose={() => setIsRefreshKeyModalOpen(false)}
-                    handleSubmit={() => rotateGroupKey()}
+                    onHandleClose={() => setIsRefreshKeyModalOpen(false)}
+                    onHandleSubmit={() => rotateGroupKey()}
                     title="Aktualizovat skupinový klíč"
                     text="Pokud máte pochyby, zda nedošlo ke kompromitaci skupiný nebo vašeho klíče ve skupině, vygenerujte nový!"
                     confirmText="Vygenerovat"
                     successMessage="Klíč aktualizován"
+                    onFeedback={props.onFeedback}
                 />
                 <ConfirmModal
                     isOpen={isLeaveGroupModalOpen}
-                    handleClose={() => setIsLeaveGroupModalOpen(false)}
-                    handleSubmit={() => props.handleLeaveGroup(props.groupIndex)}
+                    onHandleClose={() => setIsLeaveGroupModalOpen(false)}
+                    onHandleSubmit={() => props.handleLeaveGroup(props.groupIndex)}
                     title="Opustit skupinu"
                     text="Opravdu checete opsutit skupinu? Nebude znovu možné se do ní přidat! Pokud se budete chtít do skupiny znovu přidat, požádejte jiného člena o odebrání."
                     confirmText="Opustit"
                     successMessage="Skupina opuštěna"
+                    onFeedback={props.onFeedback}
                 />
                 <ConfirmModal
                     isOpen={isRemoveUserFromGroupModalOpen}
-                    handleClose={() => setIsRemoveUserFromGroupModalOpen(false)}
-                    handleSubmit={handleRemoveUserConfirmation} // HERE IS THE INCOMPLETE FUNCTINO CALL
+                    onHandleClose={() => setIsRemoveUserFromGroupModalOpen(false)}
+                    onHandleSubmit={handleRemoveUserConfirmation} // HERE IS THE INCOMPLETE FUNCTINO CALL
                     title="Odebrat uživatele"
                     text="Jste si jisti, že chcete uživatele odebrat? Bude možné ho následně znovu přidat!"
                     confirmText="Odebrat"
                     successMessage="Uživatel odebrán"
+                    onFeedback={props.onFeedback}
                 />
                 <Box sx={style}>
                     <Typography id="modal-modal-title" variant="h6" component="h2">

@@ -2,13 +2,14 @@ import * as React from 'react';
 import {FC, useState} from 'react';
 import {Link, NavLink, useNavigate} from 'react-router-dom';
 import {
+    Alert,
     AppBar,
     Avatar,
     Box,
     Button,
     IconButton,
     Menu,
-    MenuItem,
+    MenuItem, Snackbar,
     SpeedDial,
     SpeedDialAction,
     Toolbar,
@@ -50,6 +51,8 @@ const ResponsiveAppBar: FC = observer(function ResponsiveAppBar() {
     const [anchorElNav, setAnchorElNav] = React.useState<null | HTMLElement>(null);
     const [anchorElUser, setAnchorElUser] = React.useState<null | HTMLElement>(null);
 
+    const [feedBack, setFeedback] = useState<{ type: "success" | "error", message: string } | null | undefined>()
+
     const handleOpenUserMenu = (event: React.MouseEvent<HTMLElement>) => {
         setAnchorElUser(event.currentTarget);
     };
@@ -88,13 +91,14 @@ const ResponsiveAppBar: FC = observer(function ResponsiveAppBar() {
         <>
             <ConfirmModal
                 isOpen={isRefreshKeyModalOpen}
-                handleClose={() => setIsRefreshKeyModalOpen(false)}
-                handleSubmit={refreshKeyPackage}
+                onHandleClose={() => setIsRefreshKeyModalOpen(false)}
+                onHandleSubmit={refreshKeyPackage}
                 title="Aktualizovat veřejný klíč"
                 text="Pokud máte pochyby, zda nedošlo ke kompromitaci vašeho veřejného klíče, vygenerujte nový!
                 Klíč bude použit pro každé nové členství ve skupinách."
                 confirmText="Vygenerovat"
                 successMessage="Klíče aktualizovány"
+                onFeedback={(type, message) => setFeedback({type, message})}
             />
             <AppBar position="static" sx={{paddingLeft: conditionalPadding, paddingRight: conditionalPadding}}>
                 <Toolbar disableGutters>
@@ -258,6 +262,11 @@ const ResponsiveAppBar: FC = observer(function ResponsiveAppBar() {
                         </Box>}
                 </Toolbar>
             </AppBar>
+            <Snackbar open={!!feedBack} autoHideDuration={6000} onClose={() => setFeedback(null)}>
+                <Alert onClose={() => setFeedback(null)} severity={feedBack?.type} sx={{width: '100%'}}>
+                    {feedBack?.message}
+                </Alert>
+            </Snackbar>
         </>
     );
 })

@@ -171,6 +171,10 @@ export interface UpdateGroupItemPayload {
     epoch: number;
 }
 
+export interface DeleteGroupItemPayload{
+    itemId: string;
+}
+
 export interface GroupItemResponse {
     id: string;
     name: string;
@@ -450,6 +454,13 @@ class ApiService {
         return this.axiosInstance.patch<GroupItemResponse>(`/updateGroupItem`, payload, {
             headers: {
                 "Content-type": "application/merge-patch+json"
+            }
+        }).then(response => response.data);
+    }
+    public async deleteGroupItem(payload: DeleteGroupItemPayload): Promise<string> {
+        return this.axiosInstance.post<string>(`/deleteGroupItem`, payload, {
+            headers: {
+                "Content-type": "application/ld+json"
             }
         }).then(response => response.data);
     }
