@@ -586,8 +586,6 @@ export const Home = observer(function Home() {
 
         const decryptedGroupItems = await decryptGroupItems(groupsItemsToDecrypt)
 
-        console.log(JSON.stringify(decryptedGroupItems))
-
         runInAction(() => {
             groupStore.updateGroupItems(selectedGroupIndex, decryptedGroupItems)
         });
