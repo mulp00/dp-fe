@@ -423,15 +423,14 @@ export const Home = observer(function Home() {
 
     const createNewGroupItem = async (groupIndex: number, groupItem: GroupItemSnapshotIn) => {
 
-        const {ciphertext, iv} = await encryptData(groupIndex, groupItem.content)
+        const {ciphertext, iv} = await encryptData(groupIndex, groupItem.content.ciphertext)
 
         await apiService.createNewGroupItem({
             groupId: groupStore.groups[groupIndex].groupId,
             name: groupItem.name,
             description: groupItem.description,
-            content: ciphertext,
+            content: {ciphertext, iv},
             type: groupItem.type,
-            iv: iv,
             epoch: groupStore.groups[groupIndex].lastEpoch
         })
 
@@ -443,16 +442,15 @@ export const Home = observer(function Home() {
     }
     const updateGroupItem = async (groupIndex: number, groupItem: GroupItemSnapshotIn) => {
 
-        const {ciphertext, iv} = await encryptData(groupIndex, groupItem.content)
+        const {ciphertext, iv} = await encryptData(groupIndex, groupItem.content.ciphertext)
 
         const groupItemResponse = await apiService.updateGroupItem({
             itemId: groupItem.id,
             groupId: groupStore.groups[groupIndex].groupId,
             name: groupItem.name,
             description: groupItem.description,
-            content: ciphertext,
+            content: {ciphertext, iv},
             type: groupItem.type,
-            iv: iv,
             epoch: groupStore.groups[groupIndex].lastEpoch
         })
 
@@ -488,40 +486,40 @@ export const Home = observer(function Home() {
 
     const rotateGroupKey = async (groupIndex: number) => {
 
-            const decryptedGroupItems = await decryptGroupItems(groupStore.groups[groupIndex].groupItems)
+        const decryptedGroupItems = await decryptGroupItems(groupStore.groups[groupIndex].groupItems)
 
-            const provider = Provider.deserialize(userStore.me.keyStore)
-            const identity = Identity.deserialize(provider, userStore.me.serializedIdentity);
+        const provider = Provider.deserialize(userStore.me.keyStore)
+        const identity = Identity.deserialize(provider, userStore.me.serializedIdentity);
 
-            const deserializedGroup = MlsGroup.deserialize(groupStore.groups[groupIndex]?.serializedGroup);
+        const deserializedGroup = MlsGroup.deserialize(groupStore.groups[groupIndex]?.serializedGroup);
 
-            const updateKeyMessage = deserializedGroup.update_key_package(provider, identity)
+        const updateKeyMessage = deserializedGroup.update_key_package(provider, identity)
 
-            await apiService.postGeneralCommitMessage({
-                groupId: groupStore.groups[groupIndex]?.groupId,
-                message: updateKeyMessage.commit.toString(),
-                epoch: groupStore.groups[groupIndex]?.epoch
-            })
+        await apiService.postGeneralCommitMessage({
+            groupId: groupStore.groups[groupIndex]?.groupId,
+            message: updateKeyMessage.commit.toString(),
+            epoch: groupStore.groups[groupIndex]?.epoch
+        })
 
-            deserializedGroup.merge_pending_commit(provider)
+        deserializedGroup.merge_pending_commit(provider)
 
-            const keyStoreToUpdate = JSON.stringify({...JSON.parse(provider.serialize()), ...JSON.parse(userStore.me.keyStore)})
-            await apiService.updateKeyStore({keyStore: keyStoreToUpdate})
-            runInAction(() => {
-                userStore.me.setKeyStore(keyStoreToUpdate)
-            });
+        const keyStoreToUpdate = JSON.stringify({...JSON.parse(provider.serialize()), ...JSON.parse(userStore.me.keyStore)})
+        await apiService.updateKeyStore({keyStore: keyStoreToUpdate})
+        runInAction(() => {
+            userStore.me.setKeyStore(keyStoreToUpdate)
+        });
 
-            const updateSerializedUserGroupResponse = await apiService.updateSerializedUserGroup({
-                serializedUserGroupId: groupStore.groups[groupIndex]?.serializedUserGroupId,
-                serializedUserGroup: deserializedGroup.serialize(),
-                epoch: groupStore.groups[groupIndex]?.epoch + 1,
-            });
+        const updateSerializedUserGroupResponse = await apiService.updateSerializedUserGroup({
+            serializedUserGroupId: groupStore.groups[groupIndex]?.serializedUserGroupId,
+            serializedUserGroup: deserializedGroup.serialize(),
+            epoch: groupStore.groups[groupIndex]?.epoch + 1,
+        });
 
-            groupStore.updateGroup(updateSerializedUserGroupResponse);
+        groupStore.updateGroup(updateSerializedUserGroupResponse);
 
-            decryptedGroupItems.forEach((groupItem) => {
-                updateGroupItem(groupIndex, groupItem)
-            })
+        decryptedGroupItems.forEach((groupItem) => {
+            updateGroupItem(groupIndex, groupItem)
+        })
 
     }
 
@@ -619,6 +617,8 @@ export const Home = observer(function Home() {
 
         const groupItems = await apiService.getGroupItems({groupId: groupStore.groups[selectedGroupIndex]?.groupId})
 
+        console.log((groupItems))
+
         const groupsItemsToDecrypt = groupItems.map((groupItem) => {
             return {...groupItem, decrypted: false}
         })
@@ -633,8 +633,12 @@ export const Home = observer(function Home() {
 
         const promises = groupItems.map(async (groupItem) => {
             if (!groupItem.decrypted) {
-                const decryptedContent = (await decryptData(selectedGroupIndex, groupItem.content, groupItem.iv)).plaintext
-                return {...groupItem, content: decryptedContent, decrypted: true}
+                const decryptedContent = (await decryptData(selectedGroupIndex, groupItem.content.ciphertext, groupItem.content.iv)).plaintext
+                return {
+                    ...groupItem,
+                    content: {ciphertext: decryptedContent, iv: groupItem.content.iv},
+                    decrypted: true
+                }
             } else {
                 return groupItem
             }
@@ -644,8 +648,8 @@ export const Home = observer(function Home() {
     const decryptGroupItem = async (groupItem: GroupItemSnapshotIn): Promise<GroupItemSnapshotIn> => {
 
         if (!groupItem.decrypted) {
-            const decryptedContent = (await decryptData(selectedGroupIndex, groupItem.content, groupItem.iv)).plaintext
-            return {...groupItem, content: decryptedContent, decrypted: true}
+            const decryptedContent = (await decryptData(selectedGroupIndex, groupItem.content.ciphertext, groupItem.content.iv)).plaintext
+            return {...groupItem, content: {ciphertext: decryptedContent, iv: groupItem.content.iv}, decrypted: true}
         } else {
             return groupItem
         }

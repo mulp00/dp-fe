@@ -35,7 +35,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
         if (isOpen) {
             try {
                 const groupItem = groupStore.groups[groupIndex]?.groupItems[itemIndex];
-                const parsedContent = groupItem?.content ? JSON.parse(groupItem.content) : {};
+                const parsedContent = groupItem?.content ? JSON.parse(groupItem.content.ciphertext) : {};
                 setDetails({
                     ...parsedContent,
                     name: groupItem?.name,
@@ -75,7 +75,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
         try {
             const updatedItem: GroupItemSnapshotIn = {
                 ...groupStore.groups[groupIndex].groupItems[itemIndex],
-                content: JSON.stringify(validationResult.data),
+                content: {ciphertext: JSON.stringify(validationResult.data), iv: groupStore.groups[groupIndex].groupItems[itemIndex].content.iv},
                 name: details.name,
                 description: details.description
             };

@@ -9,8 +9,7 @@ export const GroupItemModel = types
         description: types.string,
         groupId: types.string,
         type: types.string,
-        content: types.string,
-        iv: types.string,
+        content: types.model({ciphertext: types.string, iv: types.string}),
         decrypted: types.boolean
     })
     .actions(withSetPropAction)
@@ -22,8 +21,7 @@ export const GroupItemModel = types
             self.description = ""
             self.groupId = ""
             self.type = ""
-            self.content = ""
-            self.iv = ""
+            self.content = {ciphertext: "", iv: ""}
         },
     })) // eslint-disable-line @typescript-eslint/no-unused-vars
 
@@ -42,7 +40,6 @@ export const createGroupItemDefaultModel = () => types.optional(GroupItemModel, 
     description: "",
     groupId: "",
     type: "",
-    content: "",
-    iv: "",
+    content: {ciphertext: "", iv: ""},
     decrypted: false,
 })

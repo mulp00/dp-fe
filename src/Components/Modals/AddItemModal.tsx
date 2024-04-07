@@ -122,17 +122,17 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
         }
 
         try {
-            let content = '';
+            let ciphertext = '';
             let descriptionToUse = '';
 
             if (type === 'login') {
                 const parsedLoginDetails = loginSchema.parse({...loginDetails, description: description});
-                content = JSON.stringify(parsedLoginDetails);
+                ciphertext = JSON.stringify(parsedLoginDetails);
                 descriptionToUse = description; // Directly use the description state
             } else if (type === 'card') {
                 const anonymizedCardNumber = cardDetails.cardNumber.replace(/.(?=.{4})/g, '*');
                 const parsedCardDetails = cardSchema.parse({...cardDetails, description: anonymizedCardNumber});
-                content = JSON.stringify(parsedCardDetails);
+                ciphertext = JSON.stringify(parsedCardDetails);
                 descriptionToUse = anonymizedCardNumber;
             }
 
@@ -140,10 +140,9 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
                 name,
                 groupId: groupStore.groups[groupIndex].groupId,
                 type,
-                content,
+                content: {ciphertext, iv: ""},
                 id: "",
                 description: descriptionToUse,
-                iv: "",
                 decrypted: true,
             };
 

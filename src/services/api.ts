@@ -155,8 +155,7 @@ export interface CreateGroupItemPayload {
     description: string;
     groupId: string;
     type: string;
-    content: string;
-    iv: string;
+    content: {ciphertext: string, iv: string;};
     epoch: number;
 }
 
@@ -166,8 +165,7 @@ export interface UpdateGroupItemPayload {
     description: string;
     groupId: string;
     type: string;
-    content: string;
-    iv: string;
+    content: {ciphertext: string, iv: string;};
     epoch: number;
 }
 
@@ -184,8 +182,7 @@ export interface GroupItemResponse {
     description: string;
     groupId: string;
     type: string;
-    content: string;
-    iv:string;
+    content: {ciphertext: string, iv: string;};
 }
 
 export type GetGroupItemCollectionResponse = [
