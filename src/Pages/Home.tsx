@@ -37,7 +37,7 @@ import {runInAction} from "mobx";
 import {ConfirmModal, CreateGroupModal, EditGroupModal, ItemDetailModal} from "../Components";
 import {MemberSnapshotIn} from "../models/User/MemberModel";
 import {AddItemModal} from "../Components/Modals/AddItemModal";
-import { GroupItemSnapshotIn} from "../models/GroupItem/GroupItemModel";
+import {GroupItemSnapshotIn} from "../models/GroupItem/GroupItemModel";
 import {decryptStringWithAesCtr, encryptStringWithAesCtr, importAesKey} from "../utils/crypto/aes/encryption";
 import {Group, GroupSnapshotIn} from "../models/Group/GroupModel";
 import {GroupResponse} from "../services/api";
@@ -73,71 +73,66 @@ export const Home = observer(function Home() {
     }
 
     const loadGroups = async () => {
-        try {
-            const groups = await apiService.getGroupCollection()
+        const groups = await apiService.getGroupCollection()
 
-            const aesKey = await importAesKey(authStore.getKeyAsUint8Array());
+        const aesKey = await importAesKey(authStore.getKeyAsUint8Array());
 
-            const promises = groups.map(async (group): Promise<GroupSnapshotIn> => {
-                const decryptedSerializedGroup = await decryptStringWithAesCtr(group.serializedGroup.ciphertext, aesKey, group.serializedGroup.iv)
-                return {...group, serializedGroup: decryptedSerializedGroup}
-            })
+        const promises = groups.map(async (group): Promise<GroupSnapshotIn> => {
+            const decryptedSerializedGroup = await decryptStringWithAesCtr(group.serializedGroup.ciphertext, aesKey, group.serializedGroup.iv)
+            return {...group, serializedGroup: decryptedSerializedGroup}
+        })
 
-            const decryptedSerializedGroups = await Promise.all(promises)
+        const decryptedSerializedGroups = await Promise.all(promises)
 
-
+        runInAction(() => {
             applySnapshot(groupStore.groups, decryptedSerializedGroups)
-        } catch (error) {
-            console.error("Unexpected error in while loading groups", error);
-            return false;
-        }
+        })
+
+        await catchUpOnEpoch();
+
     }
 
     const createGroup = async (name: string) => {
-        try {
-            const provider = Provider.deserialize(userStore.me.keyStore);
-            const identity = Identity.deserialize(provider, userStore.me.serializedIdentity);
 
-            const group = MlsGroup.create_new(provider, identity, name);
-            const serializedGroup = group.serialize();
-            const ratchetTree = group.export_ratchet_tree()
-            const serializedRatchetTree = ratchetTree.serialize()
+        const meSnapshot = getSnapshot(userStore.me)
 
-            const aesKey = await importAesKey(authStore.getKeyAsUint8Array());
+        const provider = Provider.deserialize(meSnapshot.keyStore);
+        const identity = Identity.deserialize(provider, meSnapshot.serializedIdentity);
 
-            const {
-                ciphertext: serializedUserGroup_ciphertext,
-                iv: serializedUserGroup_iv
-            } = await encryptStringWithAesCtr(serializedGroup, aesKey)
+        const group = MlsGroup.create_new(provider, identity, name);
+        const serializedGroup = group.serialize();
+        const ratchetTree = group.export_ratchet_tree()
+        const serializedRatchetTree = ratchetTree.serialize()
 
-            const createGroupResponse = await apiService.createGroup(
-                {
-                    name: name,
-                    serializedGroup: {ciphertext: serializedUserGroup_ciphertext, iv: serializedUserGroup_iv},
-                    ratchetTree: serializedRatchetTree
-                }
-            );
+        const aesKey = await importAesKey(authStore.getKeyAsUint8Array());
 
-            const keyStoreToUpdate = JSON.stringify({...JSON.parse(provider.serialize()), ...JSON.parse(userStore.me.keyStore)})
+        const {
+            ciphertext: serializedUserGroup_ciphertext,
+            iv: serializedUserGroup_iv
+        } = await encryptStringWithAesCtr(serializedGroup, aesKey)
 
-            await updateKeyStore(keyStoreToUpdate)
-            runInAction(() => {
-                userStore.me.setKeyStore(keyStoreToUpdate)
-            });
+        const createGroupResponse = await apiService.createGroup(
+            {
+                name: name,
+                serializedGroup: {ciphertext: serializedUserGroup_ciphertext, iv: serializedUserGroup_iv},
+                ratchetTree: serializedRatchetTree
+            }
+        );
 
-            runInAction(() => {
-                groupStore.createNew({...createGroupResponse, serializedGroup: serializedGroup});
-            });
+        const keyStoreToUpdate = JSON.stringify({...JSON.parse(provider.serialize()), ...JSON.parse(meSnapshot.keyStore)})
 
-            provider.free();
-            identity.free();
-            ratchetTree.free()
-            group.free();
+        await updateKeyStore(keyStoreToUpdate)
 
-        } catch (error) {
-            console.error("Failed to create group:", error);
-            throw new Error("Failed to create group.");
-        }
+        runInAction(() => {
+            groupStore.createNew({...createGroupResponse, serializedGroup: serializedGroup});
+        });
+
+        provider.free();
+        identity.free();
+        ratchetTree.free()
+        group.free();
+
+
     };
 
     const updateKeyStore = async (keyStoreToUpdate: string) => {
@@ -162,267 +157,177 @@ export const Home = observer(function Home() {
     }
 
     const joinGroups = async () => {
-        try {
-            const groupsToJoin: {
-                welcomeMessageId: string,
-                id: string,
-                groupId: string,
-                message: string,
-                ratchetTree: string,
-                epoch: string
-            }[] = await apiService.getGroupsToJoin()
+        const groupsToJoin: {
+            welcomeMessageId: string,
+            id: string,
+            groupId: string,
+            message: string,
+            ratchetTree: string,
+            epoch: string
+        }[] = await apiService.getGroupsToJoin()
 
-            const provider = Provider.deserialize(userStore.me.keyStore);
-
-            const aesKey = await importAesKey(authStore.getKeyAsUint8Array());
+        const meSnapshot = getSnapshot(userStore.me)
 
 
-            for (const group of groupsToJoin) {
+        const provider = Provider.deserialize(meSnapshot.keyStore);
 
-                const deserializedRatchetTree = RatchetTree.deserialize(group.ratchetTree)
-                const groupToJoin = MlsGroup.join(provider, stringToUint8Array(group.message), deserializedRatchetTree)
-                const serializedGroup = groupToJoin.serialize()
-
-                const {
-                    ciphertext: serializedUserGroup_ciphertext,
-                    iv: serializedUserGroup_iv
-                } = await encryptStringWithAesCtr(serializedGroup, aesKey)
-
-                const persistedSerializedUserGroup = await apiService.createSerializedUserGroupAfterJoin({
-                    groupId: group.groupId,
-                    serializedUserGroup: {ciphertext: serializedUserGroup_ciphertext, iv: serializedUserGroup_iv},
-                    epoch: group.epoch,
-                    welcomeMessageId: group.welcomeMessageId
-                })
-
-                groupStore.createNew({...persistedSerializedUserGroup, serializedGroup: serializedGroup})
-
-                deserializedRatchetTree.free()
-                groupToJoin.free()
-
-            }
-
-            const keyStoreToUpdate = JSON.stringify({...JSON.parse(provider.serialize()), ...JSON.parse(userStore.me.keyStore)})
-            await updateKeyStore(keyStoreToUpdate)
-            runInAction(() => {
-                userStore.me.setKeyStore(keyStoreToUpdate)
-            });
+        const aesKey = await importAesKey(authStore.getKeyAsUint8Array());
 
 
-            provider.free()
-        } catch (error) {
-            console.error("Unexpected error while joining group", error);
-            return false;
+        for (const group of groupsToJoin) {
+
+            const deserializedRatchetTree = RatchetTree.deserialize(group.ratchetTree)
+            const groupToJoin = MlsGroup.join(provider, stringToUint8Array(group.message), deserializedRatchetTree)
+            const serializedGroup = groupToJoin.serialize()
+
+            const {
+                ciphertext: serializedUserGroup_ciphertext,
+                iv: serializedUserGroup_iv
+            } = await encryptStringWithAesCtr(serializedGroup, aesKey)
+
+            const persistedSerializedUserGroup = await apiService.createSerializedUserGroupAfterJoin({
+                groupId: group.groupId,
+                serializedUserGroup: {ciphertext: serializedUserGroup_ciphertext, iv: serializedUserGroup_iv},
+                epoch: group.epoch,
+                welcomeMessageId: group.welcomeMessageId
+            })
+
+            groupStore.createNew({...persistedSerializedUserGroup, serializedGroup: serializedGroup})
+
+            deserializedRatchetTree.free()
+            groupToJoin.free()
+
         }
+
+        const keyStoreToUpdate = JSON.stringify({...JSON.parse(provider.serialize()), ...JSON.parse(meSnapshot.keyStore)})
+        await updateKeyStore(keyStoreToUpdate)
+
+        provider.free()
+
     }
 
     const addUser = async (member: MemberSnapshotIn, groupId: string) => {
+
+        const groupSnapshot = getSnapshot(groupStore.getGroupById(groupId))
+        const meSnapshot = getSnapshot(userStore.me)
+
+        const decryptedGroupItems = await decryptGroupItems(groupId, groupSnapshot.groupItems)
+
+        const provider = Provider.deserialize(meSnapshot.keyStore);
+        const identity = Identity.deserialize(provider, meSnapshot.serializedIdentity);
+
+        const deserializedGroup = MlsGroup.deserialize(groupSnapshot.serializedGroup);
+
+        const deserializedKeyPackage = KeyPackage.deserialize(member.keyPackage)
+
+        let add_msg
         try {
-            const groupSnapshot = getSnapshot(groupStore.getGroupById(groupId))
-
-            const decryptedGroupItems = await decryptGroupItems(groupId, groupSnapshot.groupItems)
-
-            const provider = Provider.deserialize(userStore.me.keyStore);
-            const identity = Identity.deserialize(provider, userStore.me.serializedIdentity);
-
-            const deserializedGroup = MlsGroup.deserialize(groupStore.getGroupById(groupId).serializedGroup);
-
-            const deserializedKeyPackage = KeyPackage.deserialize(member.keyPackage)
-
-            const add_msg = deserializedGroup.add_member(
+            add_msg = deserializedGroup.add_member(
                 provider,
                 identity,
                 deserializedKeyPackage
             );
-
-            deserializedGroup.merge_pending_commit(provider)
-
-            const keyStoreToUpdate = JSON.stringify({...JSON.parse(provider.serialize()), ...JSON.parse(userStore.me.keyStore)})
-            await updateKeyStore(keyStoreToUpdate)
-            runInAction(() => {
-                userStore.me.setKeyStore(keyStoreToUpdate)
-            });
-
-            const ratchetTree = deserializedGroup.export_ratchet_tree()
-            const serializedRatchetTree = ratchetTree.serialize()
-
-            try {
-                await apiService.createWelcomeMessage({
-                    welcomeMessage: add_msg.welcome.toString(),
-                    commitMessage: add_msg.commit.toString(),
-                    memberId: member.id,
-                    groupId: groupId,
-                    ratchetTree: serializedRatchetTree,
-                });
-            } catch (error) {
-                console.error("Failed to create welcome message", error);
-                return false;
-            }
-            const aesKey = await importAesKey(authStore.getKeyAsUint8Array());
-
-            const serializedDeserializedUserGroup = deserializedGroup.serialize()
-
-            const {
-                ciphertext: serializedUserGroup_ciphertext,
-                iv: serializedUserGroup_iv
-            } = await encryptStringWithAesCtr(serializedDeserializedUserGroup, aesKey)
-
-            let updateSerializedUserGroupResponse: GroupResponse;
-            try {
-                updateSerializedUserGroupResponse = await apiService.updateSerializedUserGroup({
-                    serializedUserGroupId: groupSnapshot.serializedUserGroupId,
-                    serializedUserGroup: {ciphertext: serializedUserGroup_ciphertext, iv: serializedUserGroup_iv},
-                    epoch: groupSnapshot.epoch + 1,
-                });
-            } catch (error) {
-                console.error("Failed to update serialized user group", error);
-                return false;
-            }
-            runInAction(() => {
-                const selectedGroup = groupStore.updateGroup({
-                    ...updateSerializedUserGroupResponse,
-                    serializedGroup: serializedDeserializedUserGroup
-                })
-                setEditedGroupId(selectedGroup.groupId);
-            });
-
-            runInAction(() => {
-                for (const groupItem of decryptedGroupItems) {
-                    updateGroupItem(groupId, groupItem);
-                }
-            });
-
-            provider.free();
-            identity.free();
-            deserializedGroup.free();
-            deserializedKeyPackage.free()
-
-            return true;
         } catch (error) {
             if (error instanceof Error) {
                 if (error.message.includes("Duplicate signature key in proposals and group")) {
-                    console.log(error)
+                    console.error(error)
                     setIsConfirmErrorUserAddModalOpen(true)
-                    return false
                 }
             }
+            provider.free();
+            identity.free();
+            deserializedGroup.free();
+            deserializedKeyPackage.free()
             console.error("Unexpected error while adding user ", error);
             return false
         }
+
+        deserializedGroup.merge_pending_commit(provider)
+
+
+        const ratchetTree = deserializedGroup.export_ratchet_tree()
+        const serializedRatchetTree = ratchetTree.serialize()
+
+
+        const keyStoreToUpdate = JSON.stringify({...JSON.parse(provider.serialize()), ...JSON.parse(meSnapshot.keyStore)})
+        await updateKeyStore(keyStoreToUpdate)
+
+        await apiService.createWelcomeMessage({
+            welcomeMessage: add_msg.welcome.toString(),
+            commitMessage: add_msg.commit.toString(),
+            memberId: member.id,
+            groupId: groupId,
+            ratchetTree: serializedRatchetTree,
+        });
+
+        const aesKey = await importAesKey(authStore.getKeyAsUint8Array());
+
+        const serializedDeserializedUserGroup = deserializedGroup.serialize()
+
+        const {
+            ciphertext: serializedUserGroup_ciphertext,
+            iv: serializedUserGroup_iv
+        } = await encryptStringWithAesCtr(serializedDeserializedUserGroup, aesKey)
+
+
+        const updateSerializedUserGroupResponse = await apiService.updateSerializedUserGroup({
+            serializedUserGroupId: groupSnapshot.serializedUserGroupId,
+            serializedUserGroup: {ciphertext: serializedUserGroup_ciphertext, iv: serializedUserGroup_iv},
+            epoch: groupSnapshot.epoch + 1,
+        });
+
+        runInAction(() => {
+            const selectedGroup = groupStore.updateGroup({
+                ...updateSerializedUserGroupResponse,
+                serializedGroup: serializedDeserializedUserGroup
+            })
+            // setEditedGroupId(selectedGroup.groupId);
+        });
+
+        runInAction(() => {
+            for (const groupItem of decryptedGroupItems) {
+                updateGroupItem(groupId, groupItem);
+            }
+        });
+
+        provider.free();
+        identity.free();
+        deserializedGroup.free();
+        deserializedKeyPackage.free()
+        add_msg.free()
+        ratchetTree.free()
+
+        return true;
+
     }
 
     const catchUpOnEpoch = async () => {
-        try {
-            const provider = Provider.deserialize(userStore.me.keyStore);
+        const meSnapshot = getSnapshot(userStore.me)
+        const groupsSnapshot: GroupSnapshotIn[] = getSnapshot(groupStore.groups)
 
-            for (const group of groupStore.groups) {
-                const commitMessages: {
-                    message: string;
-                    epoch: number;
-                }[] = await apiService.getCommitMessages({groupId: group.groupId, epoch: group.lastEpoch})
+        const provider = Provider.deserialize(meSnapshot.keyStore);
 
-                if (commitMessages.length === 0) continue
+        for (const group of groupsSnapshot) {
+            const commitMessages: {
+                message: string;
+                epoch: number;
+            }[] = await apiService.getCommitMessages({groupId: group.groupId, epoch: group.lastEpoch})
 
-                const deserializedGroup = MlsGroup.deserialize(group.serializedGroup);
+            if (commitMessages.length === 0) continue
 
-                commitMessages.sort((a, b) => a.epoch - b.epoch);
+            const deserializedGroup = MlsGroup.deserialize(group.serializedGroup);
 
-                for (const commitMessage of commitMessages) {
+            commitMessages.sort((a, b) => a.epoch - b.epoch);
 
-                    deserializedGroup.process_message(provider, stringToUint8Array(commitMessage.message))
+            for (const commitMessage of commitMessages) {
 
-                    runInAction(() => {
-                        group.setLastEpoch(commitMessage.epoch);
-                    });
-                }
-
-
+                deserializedGroup.process_message(provider, stringToUint8Array(commitMessage.message))
                 deserializedGroup.merge_pending_commit(provider)
 
-                const aesKey = await importAesKey(authStore.getKeyAsUint8Array());
-
-                const serializedDeserializedUserGroup = deserializedGroup.serialize()
-
-                const {
-                    ciphertext: serializedUserGroup_ciphertext,
-                    iv: serializedUserGroup_iv
-                } = await encryptStringWithAesCtr(serializedDeserializedUserGroup, aesKey)
-
-                try {
-                    const updateSerializedUserGroupResponse = await apiService.updateSerializedUserGroup({
-                        serializedUserGroupId: group.serializedUserGroupId,
-                        serializedUserGroup: {ciphertext: serializedUserGroup_ciphertext, iv: serializedUserGroup_iv},
-                        epoch: group.lastEpoch,
-                    });
-                    runInAction(() => {
-                        groupStore.updateGroup({
-                            ...updateSerializedUserGroupResponse,
-                            serializedGroup: serializedDeserializedUserGroup
-                        })
-                    });
-                } catch (error) {
-                    console.error("Failed to update serialized user group", error);
-                    return false;
-                }
-
-                deserializedGroup.free()
-            }
-            const keyStoreToUpdate = JSON.stringify({...JSON.parse(provider.serialize()), ...JSON.parse(userStore.me.keyStore)})
-            await updateKeyStore(keyStoreToUpdate)
-            runInAction(() => {
-                userStore.me.setKeyStore(keyStoreToUpdate)
-            });
-
-            provider.free()
-        } catch (error) {
-            console.error("Unexpected error while catching up on epoch", error);
-            return false;
-        }
-    }
-
-    const removeUser = async (member: MemberSnapshotIn, groupId: string) => {
-        try {
-            const groupSnapshot = getSnapshot(groupStore.getGroupById(groupId))
-
-            const decryptedGroupItems = await decryptGroupItems(groupId, groupSnapshot.groupItems)
-
-
-            const provider = Provider.deserialize(userStore.me.keyStore);
-            const identity = Identity.deserialize(provider, userStore.me.serializedIdentity);
-
-            const deserializedGroup = MlsGroup.deserialize(groupSnapshot.serializedGroup);
-
-            const deserializedRemovedMemberKeyPackage = KeyPackage.deserialize(member.keyPackage)
-
-            const removedMemberIndex = deserializedGroup.get_member_index(deserializedRemovedMemberKeyPackage)
-
-            const deserializedKeyPackage = KeyPackage.deserialize(member.keyPackage)
-
-            const add_msg = deserializedGroup.remove_member(
-                provider,
-                identity,
-                removedMemberIndex
-            );
-
-            try {
-                await apiService.removeUser({
-                    message: add_msg.commit.toString(),
-                    groupId: groupSnapshot.groupId,
-                    userId: member.id,
-                    epoch: groupSnapshot.epoch
+                runInAction(() => {
+                    groupStore.getGroupById(group.groupId).setLastEpoch(commitMessage.epoch)
                 });
-            } catch (error) {
-                console.error("Failed to remove user", error);
-                return false;
             }
-
-            deserializedGroup.merge_pending_commit(provider)
-
-            const keyStoreToUpdate = JSON.stringify({...JSON.parse(provider.serialize()), ...JSON.parse(userStore.me.keyStore)})
-            await updateKeyStore(keyStoreToUpdate)
-            runInAction(() => {
-                userStore.me.setKeyStore(keyStoreToUpdate)
-            });
 
             const aesKey = await importAesKey(authStore.getKeyAsUint8Array());
 
@@ -433,49 +338,112 @@ export const Home = observer(function Home() {
                 iv: serializedUserGroup_iv
             } = await encryptStringWithAesCtr(serializedDeserializedUserGroup, aesKey)
 
-            let updateSerializedUserGroupResponse: GroupResponse;
-            try {
-                updateSerializedUserGroupResponse = await apiService.updateSerializedUserGroup({
-                    serializedUserGroupId: groupSnapshot.serializedUserGroupId,
-                    serializedUserGroup: {ciphertext: serializedUserGroup_ciphertext, iv: serializedUserGroup_iv},
-                    epoch: groupSnapshot.epoch + 1,
-                });
-            } catch (error) {
-                console.error("Failed to update serialized user group", error);
-                return false;
-            }
-
+            const updateSerializedUserGroupResponse = await apiService.updateSerializedUserGroup({
+                serializedUserGroupId: group.serializedUserGroupId,
+                serializedUserGroup: {ciphertext: serializedUserGroup_ciphertext, iv: serializedUserGroup_iv},
+                epoch: group.lastEpoch,
+            });
             runInAction(() => {
-                const selectedGroup = groupStore.updateGroup({
+                groupStore.updateGroup({
                     ...updateSerializedUserGroupResponse,
                     serializedGroup: serializedDeserializedUserGroup
                 })
-                setEditedGroupId(selectedGroup.groupId);
             });
 
-            runInAction(() => {
-                for (const groupItem of decryptedGroupItems) {
-                    updateGroupItem(groupId, groupItem);
-                }
-            });
 
-            provider.free();
-            identity.free();
-            deserializedGroup.free();
-            deserializedKeyPackage.free()
-
-            return true;
-        } catch (error) {
-            console.error("Unexpected error while removing user ", error);
-            return false;
+            deserializedGroup.free()
         }
+        const keyStoreToUpdate = JSON.stringify({...JSON.parse(provider.serialize()), ...JSON.parse(meSnapshot.keyStore)})
+        await updateKeyStore(keyStoreToUpdate)
+
+        provider.free()
+
+    }
+
+    const removeUser = async (member: MemberSnapshotIn, groupId: string) => {
+        const groupSnapshot = getSnapshot(groupStore.getGroupById(groupId))
+        const meSnapshot = getSnapshot(userStore.me)
+
+        const decryptedGroupItems = await decryptGroupItems(groupId, groupSnapshot.groupItems)
+
+        const provider = Provider.deserialize(meSnapshot.keyStore);
+        const identity = Identity.deserialize(provider, meSnapshot.serializedIdentity);
+
+        const deserializedGroup = MlsGroup.deserialize(groupSnapshot.serializedGroup);
+
+        const deserializedRemovedMemberKeyPackage = KeyPackage.deserialize(member.keyPackage)
+
+        const removedMemberIndex = deserializedGroup.get_member_index(deserializedRemovedMemberKeyPackage)
+
+        const deserializedKeyPackage = KeyPackage.deserialize(member.keyPackage)
+
+        const add_msg = deserializedGroup.remove_member(
+            provider,
+            identity,
+            removedMemberIndex
+        );
+
+        await apiService.removeUser({
+            message: add_msg.commit.toString(),
+            groupId: groupSnapshot.groupId,
+            userId: member.id,
+            epoch: groupSnapshot.epoch
+        });
+
+        deserializedGroup.merge_pending_commit(provider)
+
+        const keyStoreToUpdate = JSON.stringify({...JSON.parse(provider.serialize()), ...JSON.parse(meSnapshot.keyStore)})
+        await updateKeyStore(keyStoreToUpdate)
+
+
+        const aesKey = await importAesKey(authStore.getKeyAsUint8Array());
+
+        const serializedDeserializedUserGroup = deserializedGroup.serialize()
+
+        const {
+            ciphertext: serializedUserGroup_ciphertext,
+            iv: serializedUserGroup_iv
+        } = await encryptStringWithAesCtr(serializedDeserializedUserGroup, aesKey)
+
+        const updateSerializedUserGroupResponse = await apiService.updateSerializedUserGroup({
+            serializedUserGroupId: groupSnapshot.serializedUserGroupId,
+            serializedUserGroup: {ciphertext: serializedUserGroup_ciphertext, iv: serializedUserGroup_iv},
+            epoch: groupSnapshot.epoch + 1,
+        });
+
+        runInAction(() => {
+            const selectedGroup = groupStore.updateGroup({
+                ...updateSerializedUserGroupResponse,
+                serializedGroup: serializedDeserializedUserGroup
+            })
+            setEditedGroupId(selectedGroup.groupId);
+        });
+
+        runInAction(() => {
+            for (const groupItem of decryptedGroupItems) {
+                updateGroupItem(groupId, groupItem);
+            }
+        });
+
+        provider.free();
+        identity.free();
+        deserializedGroup.free();
+        deserializedKeyPackage.free()
+        deserializedRemovedMemberKeyPackage.free()
+        removedMemberIndex.free()
+        add_msg.free()
+
+        return true;
+
     }
     const leaveGroup = async (groupId: string) => {
 
+        const meSnapshot = getSnapshot(userStore.me)
+
         const groupSnapshot = getSnapshot(groupStore.getGroupById(groupId))
 
-        const provider = Provider.deserialize(userStore.me.keyStore);
-        const identity = Identity.deserialize(provider, userStore.me.serializedIdentity);
+        const provider = Provider.deserialize(meSnapshot.keyStore);
+        const identity = Identity.deserialize(provider, meSnapshot.serializedIdentity);
 
         const deserializedGroup = MlsGroup.deserialize(groupSnapshot.serializedGroup);
 
@@ -492,13 +460,10 @@ export const Home = observer(function Home() {
 
         deserializedGroup.merge_pending_commit(provider)
 
-        const keyStoreToUpdate = JSON.stringify({...JSON.parse(provider.serialize()), ...JSON.parse(userStore.me.keyStore)})
+        const keyStoreToUpdate = JSON.stringify({...JSON.parse(provider.serialize()), ...JSON.parse(meSnapshot.keyStore)})
         await updateKeyStore(keyStoreToUpdate)
-        runInAction(() => {
-            userStore.me.setKeyStore(keyStoreToUpdate)
-        });
 
-        runInAction(()=>{
+        runInAction(() => {
             groupStore.removeGroup(groupId)
         })
 
@@ -508,11 +473,14 @@ export const Home = observer(function Home() {
         provider.free();
         identity.free();
         deserializedGroup.free();
+        leave_msg.free()
 
         return true;
     }
 
     const createNewGroupItem = async (groupId: string, groupItem: GroupItemSnapshotIn) => {
+
+        const groupSnapshot = getSnapshot(groupStore.getGroupById(groupId))
 
         const {ciphertext, iv} = await encryptGroupData(groupId, groupItem.content.ciphertext)
 
@@ -522,7 +490,7 @@ export const Home = observer(function Home() {
             description: groupItem.description,
             content: {ciphertext, iv},
             type: groupItem.type,
-            epoch: groupStore.getGroupById(groupId).lastEpoch
+            epoch: groupSnapshot.lastEpoch
         })
 
 
@@ -538,12 +506,13 @@ export const Home = observer(function Home() {
     }
     const updateGroupItem = async (groupId: string, groupItem: GroupItemSnapshotIn) => {
 
+        const groupSnapshot = getSnapshot(groupStore.getGroupById(groupId))
         const encryptedGroupItem = await encryptGroupItem(groupId, groupItem)
 
         await apiService.updateGroupItem({
             ...encryptedGroupItem,
             groupId: groupId,
-            epoch: groupStore.getGroupById(groupId).lastEpoch
+            epoch: groupSnapshot.lastEpoch
         })
 
         runInAction(() => {
@@ -576,11 +545,12 @@ export const Home = observer(function Home() {
     const rotateGroupKey = async (groupId: string) => {
 
         const groupSnapshot = getSnapshot(groupStore.getGroupById(groupId))
+        const meSnapshot = getSnapshot(userStore.me)
 
         const decryptedGroupItems = await decryptGroupItems(groupId, groupSnapshot.groupItems)
 
-        const provider = Provider.deserialize(userStore.me.keyStore)
-        const identity = Identity.deserialize(provider, userStore.me.serializedIdentity);
+        const provider = Provider.deserialize(meSnapshot.keyStore)
+        const identity = Identity.deserialize(provider, meSnapshot.serializedIdentity);
 
         const deserializedGroup = MlsGroup.deserialize(groupSnapshot.serializedGroup);
 
@@ -595,12 +565,8 @@ export const Home = observer(function Home() {
         deserializedGroup.merge_pending_commit(provider)
 
 
-        const keyStoreToUpdate = JSON.stringify({...JSON.parse(provider.serialize()), ...JSON.parse(userStore.me.keyStore)})
+        const keyStoreToUpdate = JSON.stringify({...JSON.parse(provider.serialize()), ...JSON.parse(meSnapshot.keyStore)})
         await updateKeyStore(keyStoreToUpdate)
-        runInAction(() => {
-            userStore.me.setKeyStore(keyStoreToUpdate)
-        });
-
         runInAction(() => {
             userStore.me.setKeyStore(keyStoreToUpdate)
         });
@@ -632,13 +598,22 @@ export const Home = observer(function Home() {
                 updateGroupItem(groupId, groupItem);
             }
         });
+
+        provider.free()
+        identity.free()
+        deserializedGroup.free()
+        updateKeyMessage.free()
+
     }
 
     const encryptGroupData = async (groupId: string, data: string): Promise<{ ciphertext: string, iv: string }> => {
 
-        const provider = Provider.deserialize(userStore.me.keyStore);
+        const meSnapshot = getSnapshot(userStore.me)
+        const groupSnapshot = getSnapshot(groupStore.getGroupById(groupId))
 
-        const deserializedGroup = MlsGroup.deserialize(groupStore.getGroupById(groupId).serializedGroup);
+        const provider = Provider.deserialize(meSnapshot.keyStore);
+
+        const deserializedGroup = MlsGroup.deserialize(groupSnapshot.serializedGroup);
 
         const secret = deserializedGroup.export_key(
             provider,
@@ -659,9 +634,12 @@ export const Home = observer(function Home() {
     }
     const decryptGroupData = async (groupId: string, data: string, iv: string): Promise<{ plaintext: string, }> => {
 
-        const provider = Provider.deserialize(userStore.me.keyStore);
+        const meSnapshot = getSnapshot(userStore.me)
+        const groupSnapshot = getSnapshot(groupStore.getGroupById(groupId))
 
-        const deserializedGroup = MlsGroup.deserialize(groupStore.getGroupById(groupId).serializedGroup);
+        const provider = Provider.deserialize(meSnapshot.keyStore);
+
+        const deserializedGroup = MlsGroup.deserialize(groupSnapshot.serializedGroup);
 
         const secret = deserializedGroup.export_key(
             provider,
@@ -705,7 +683,7 @@ export const Home = observer(function Home() {
             const decryptedContent = (await decryptGroupData(groupId, groupItem.content.ciphertext, groupItem.content.iv)).plaintext
             return {
                 ...groupItem,
-                content: {ciphertext: decryptedContent, iv: groupItem.content.iv},
+                content: {ciphertext: decryptedContent, iv: ""},
                 decrypted: true
             }
         } else {
@@ -732,10 +710,11 @@ export const Home = observer(function Home() {
 
     }
 
-    const selectedGroupItems = ((selectedGroupId !== "")&&(groupStore.getGroupById(selectedGroupId))) ? groupStore.getGroupById(selectedGroupId).groupItems : undefined;
+
+    const selectedGroupItems = ((selectedGroupId !== "") && (groupStore.getGroupById(selectedGroupId))) ? groupStore.getGroupById(selectedGroupId).groupItems : undefined;
     useEffect(() => {
 
-        if (isWasmInitialized && (selectedGroupId !== "") && (selectedGroupId !== "")) {
+        if (isWasmInitialized && (selectedGroupId !== "") && (selectedGroupId !== "") && selectedGroupItems) {
             loadGroupItems(selectedGroupId)
         }
         // groupStore.updateGroup()
@@ -753,7 +732,6 @@ export const Home = observer(function Home() {
                 if (!initialLoadDone) {
                     await joinGroups();
                     await loadGroups();
-                    await catchUpOnEpoch();
                     // groupStore.groups.forEach((group) => {
                     //     const deserializedgroup = MlsGroup.deserialize(group.serializedGroup)
                     //     console.log(deserializedgroup.export_key(provider, 'exported', new Uint8Array(32).fill(0x30),
@@ -769,10 +747,11 @@ export const Home = observer(function Home() {
     }, [isWasmInitialized, initialLoadDone]);
 
     useEffect(() => {
-        if (groupStore.groups.length > 0) {
-            setSelectedGroupId(groupStore.groups[0].groupId)
+        const groupStoreSnapshot = getSnapshot(groupStore)
+        if (groupStoreSnapshot.groups.length > 0) {
+            setSelectedGroupId(groupStoreSnapshot.groups[0].groupId)
         }
-    }, [groupStore.groups]);
+    }, [groupStore, groupStore.groups]);
 
 
     const actions = [
@@ -881,10 +860,10 @@ export const Home = observer(function Home() {
                     {filteredGroups.map((group, index) => (
                         <React.Fragment key={group.groupId /* Use group.id instead of index for key if possible */}>
                             <ListItemButton
-                                selected={(selectedGroupId !== null) && (selectedGroupId === group.groupId)}
+                                selected={(selectedGroupId !== "") && (selectedGroupId === group.groupId)}
                                 onClick={async () => {
                                     setSelectedGroupId(group.groupId)
-                                    if (selectedGroupId !== null) {
+                                    if (selectedGroupId !== "") {
                                         await loadGroupItems(selectedGroupId)
                                     }
                                 }}
@@ -935,14 +914,20 @@ export const Home = observer(function Home() {
 
                 <EditGroupModal
                     isOpen={isEditGroupModalOpen}
-                    onHandleClose={() => setIsEditGroupModalOpen(false)}
+                    onHandleClose={() => {
+                        setEditedGroupId("")
+                        setIsEditGroupModalOpen(false)
+                    }}
                     groupId={editedGroupId}
-                    me={userStore.me}
+                    meSnapshot={getSnapshot(userStore.me)}
                     onHandleAddUser={addUser}
                     onHandleRemoveUser={removeUser}
                     onHandleLeaveGroup={leaveGroup}
                     onFeedback={(type, message) => setFeedback({type, message})}
-                    onHandleGroupDelete={async () => deleteGroup(editedGroupId)}
+                    onHandleGroupDelete={async () => {
+                        setEditedGroupId("")
+                        deleteGroup(editedGroupId)
+                    }}
                     onRotateGroupKey={rotateGroupKey}
                 />
             }
@@ -1036,7 +1021,7 @@ export const Home = observer(function Home() {
                                             ))}
                                         </SpeedDial>
                                     </CardContent>
-                                    {groupStore.getGroupById(selectedGroupId).groupItems && groupStore.getGroupById(selectedGroupId).groupItems.length > 0
+                                    {groupStore.getGroupById(selectedGroupId)?.groupItems && groupStore.getGroupById(selectedGroupId)?.groupItems.length > 0
                                         ?
                                         <DataGrid
                                             sx={{

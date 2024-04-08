@@ -1,7 +1,7 @@
 import React, {useMemo, useState} from 'react';
 import {observer} from "mobx-react";
 import {Autocomplete, Box, Button, IconButton, Modal, Stack, TextField, Typography} from "@mui/material";
-import {User} from "../../models/User/UserModel";
+import {User, UserSnapshotIn} from "../../models/User/UserModel";
 import {DataGrid, GridColDef, GridRenderCellParams} from "@mui/x-data-grid";
 import {useApiService} from "../../hooks";
 import {Member, MemberSnapshotIn} from "../../models/User/MemberModel";
@@ -18,7 +18,7 @@ export type EditGroupModalProps = {
     isOpen: boolean;
     onHandleClose: () => void;
     groupId: string;
-    me: User
+    meSnapshot: UserSnapshotIn
     onHandleAddUser: (member: MemberSnapshotIn, groupId: string) => Promise<boolean>
     onHandleRemoveUser: (member: MemberSnapshotIn, groupId: string) => Promise<boolean>
     onHandleLeaveGroup: (groupId: string) => Promise<boolean>
@@ -129,7 +129,7 @@ export const EditGroupModal = observer(function EditGroupModal(props: EditGroupM
             renderCell: (params: GridRenderCellParams<Member>) => (
                 params.value.email === groupSnapshot.creator.email ?
                     <Button variant="outlined" disabled color="error">Zakázáno</Button> :
-                    params.value.email === props.me.email ?
+                    params.value.email === props.meSnapshot.email ?
                         <Button variant="outlined" onClick={() => setIsLeaveGroupModalOpen(true)}
                                 color="error">Opustit</Button> :
                         <Button variant="outlined" onClick={() => {
