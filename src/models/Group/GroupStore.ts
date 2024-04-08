@@ -25,8 +25,8 @@ export const GroupStoreModel = types
             }
             return self.groups[groupIndex]
         },
-        removeGroup(group: GroupSnapshotIn){
-            const groupIndex = self.groups.findIndex(g => g.groupId === group.groupId);
+        removeGroup(groupId: string){
+            const groupIndex = self.groups.findIndex(g => g.groupId === groupId);
             try{
                 if (groupIndex !== -1) {
                     self.groups.remove(self.groups[groupIndex])
@@ -57,12 +57,20 @@ export const GroupStoreModel = types
         getGroupIndex(group: GroupSnapshotIn){
             return  self.groups.findIndex(g => g.groupId === group.groupId);
         },
-        deleteGroup(group: Group){
-            const groupIndex = self.groups.findIndex(g => g.groupId === group.groupId);
+        deleteGroup(groupId: string){
+            const groupIndex = self.groups.findIndex(g => g.groupId === groupId);
             if (groupIndex !== -1) {
                 self.groups.splice(groupIndex, 1)
             }
         },
+        getGroupById(groupId: string){
+            const groupIndex = self.groups.findIndex(g => g.groupId === groupId);
+            return self.groups[groupIndex]
+        },
+        getGroupItemByIds(groupId: string, groupItemId: string){
+            const groupIndex = self.groups.findIndex(g => g.groupId === groupId);
+            return self.groups[groupIndex].getGroupItemById(groupItemId)
+        }
     })) // eslint-disable-line @typescript-eslint/no-unused-vars
 
 export interface GroupStore extends Instance<typeof GroupStoreModel> {

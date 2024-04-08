@@ -1,7 +1,7 @@
 import {applySnapshot, Instance, SnapshotIn, SnapshotOut, types} from "mobx-state-tree";
 import {withSetPropAction} from "../helpers/withSetPropAction";
 import {createMemberDefaultModel, MemberModel} from "../User/MemberModel";
-import {GroupItem, GroupItemModel, GroupItemSnapshotIn} from "../GroupItem/GroupItemModel";
+import { GroupItemModel, GroupItemSnapshotIn} from "../GroupItem/GroupItemModel";
 
 export const GroupModel = types
     .model("GroupModel")
@@ -61,8 +61,8 @@ export const GroupModel = types
             }
             return self.groupItems[groupItemIndex]
         },
-        deleteGroupItem( groupItem: GroupItem){
-            const groupItemIndex = self.groupItems.findIndex(g => g.itemId === groupItem.itemId);
+        deleteGroupItem( groupItemId: string){
+            const groupItemIndex = self.groupItems.findIndex(g => g.itemId === groupItemId);
             if (groupItemIndex !== -1) {
                 self.groupItems.splice(groupItemIndex, 1)
             }

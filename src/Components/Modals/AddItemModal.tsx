@@ -9,9 +9,9 @@ import {Group} from "../../models/Group/GroupModel";
 interface AddItemModalProps {
     isOpen: boolean;
     onHandleClose: () => void;
-    group: Group;
+    groupId: string;
     type: string;
-    onItemCreate: (group: Group, groupItem: GroupItemSnapshotIn) => Promise<boolean>;
+    onItemCreate: (groupId: string, groupItem: GroupItemSnapshotIn) => Promise<boolean>;
     onFeedback: (type: 'success' | 'error', message: string) => void;
 }
 
@@ -34,7 +34,7 @@ export const cardSchema = z.object({
 export const AddItemModal: React.FC<AddItemModalProps> = ({
                                                               isOpen,
                                                               onHandleClose,
-                                                              group,
+                                                              groupId,
                                                               type,
                                                               onItemCreate,
                                                               onFeedback
@@ -52,7 +52,7 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
     });
     const [loading, setLoading] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
-    const {groupStore} = useStores()
+
     const inputRef = useRef<HTMLInputElement>(null);
 
 
@@ -139,7 +139,7 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
 
             const item: GroupItemSnapshotIn = {
                 name,
-                groupId: group.groupId,
+                groupId: groupId,
                 type,
                 content: {ciphertext, iv: ""},
                 itemId: "",
@@ -147,7 +147,7 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
                 decrypted: true,
             };
 
-            const success = await onItemCreate(group, item);
+            const success = await onItemCreate(groupId, item);
             if (success) {
                 onFeedback('success', 'Položka byla úspěšně přidána.');
                 resetForm();

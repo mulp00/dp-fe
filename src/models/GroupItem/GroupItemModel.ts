@@ -25,7 +25,7 @@ export const GroupItemModel = types
         },
     })) // eslint-disable-line @typescript-eslint/no-unused-vars
 
-export interface GroupItem extends Instance<typeof GroupItemModel> {
+export interface Group extends Instance<typeof GroupItemModel> {
 }
 
 export interface GroupItemSnapshotOut extends SnapshotOut<typeof GroupItemModel> {
