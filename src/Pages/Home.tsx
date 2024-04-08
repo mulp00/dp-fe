@@ -194,7 +194,6 @@ export const Home = observer(function Home() {
 
             groupStore.createNew({...persistedSerializedUserGroup, serializedGroup: serializedGroup})
 
-            deserializedRatchetTree.free()
             groupToJoin.free()
 
         }
@@ -220,6 +219,7 @@ export const Home = observer(function Home() {
 
         const deserializedKeyPackage = KeyPackage.deserialize(member.keyPackage)
 
+        console.log(provider.serialize())
         let add_msg
         try {
             add_msg = deserializedGroup.add_member(
@@ -319,15 +319,25 @@ export const Home = observer(function Home() {
 
             commitMessages.sort((a, b) => a.epoch - b.epoch);
 
+            let newEpoch = -1
+
             for (const commitMessage of commitMessages) {
 
-                deserializedGroup.process_message(provider, stringToUint8Array(commitMessage.message))
-                deserializedGroup.merge_pending_commit(provider)
+                console.log(commitMessage.epoch)
 
-                runInAction(() => {
-                    groupStore.getGroupById(group.groupId).setLastEpoch(commitMessage.epoch)
-                });
+                try {
+                    deserializedGroup.process_message(provider, stringToUint8Array(commitMessage.message))
+                    deserializedGroup.merge_pending_commit(provider)
+                    newEpoch = commitMessage.epoch
+                }catch (error){
+                    if (error instanceof Error) {
+                        console.log(error.message)
+                    }
+                }
+
             }
+
+            if(newEpoch === -1) break
 
             const aesKey = await importAesKey(authStore.getKeyAsUint8Array());
 
@@ -341,7 +351,7 @@ export const Home = observer(function Home() {
             const updateSerializedUserGroupResponse = await apiService.updateSerializedUserGroup({
                 serializedUserGroupId: group.serializedUserGroupId,
                 serializedUserGroup: {ciphertext: serializedUserGroup_ciphertext, iv: serializedUserGroup_iv},
-                epoch: group.lastEpoch,
+                epoch: newEpoch,
             });
             runInAction(() => {
                 groupStore.updateGroup({
