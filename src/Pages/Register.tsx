@@ -4,13 +4,14 @@ import {
     InputAdornment, IconButton, InputLabel, FormControl, Box, Snackbar, Alert
 } from '@mui/material';
 import QRCode from 'react-qr-code';
-import * as mfkdf from '../utils/crypto/mfkdf/mfkdf.min';
+// import * as mfkdf from '../utils/crypto/mfkdf/mfkdf.min';
 import __wbg_init, {Identity, Provider} from "../utils/crypto/openmls";
 import {z} from 'zod';
 import api, {RegisterPayload} from "../services/api";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import Visibility from "@mui/icons-material/Visibility";
 import {encryptStringWithAesCtr, importAesKey} from "../utils/crypto/aes/encryption";
+const mfkdf = require('mfkdf/mfkdf');
 
 const RegisterSchema = z.object({
     email: z.string().email(),
@@ -97,7 +98,6 @@ export const Register = function () {
         const serialized_keyStore = provider.serialize();
 
 
-
         const setup = await mfkdf.setup.key([
             await mfkdf.setup.factors.password(state.password),
             await mfkdf.setup.factors.totp({
@@ -110,8 +110,14 @@ export const Register = function () {
 
         const aesKey = await importAesKey(setup.key);
 
-        const {ciphertext: serialized_identity_ciphertext, iv: serialized_identity_iv} = await encryptStringWithAesCtr(serialized_identity, aesKey)
-        const {ciphertext: serialized_keyStore_ciphertext, iv: serialized_keyStore_iv} = await encryptStringWithAesCtr(serialized_keyStore, aesKey)
+        const {
+            ciphertext: serialized_identity_ciphertext,
+            iv: serialized_identity_iv
+        } = await encryptStringWithAesCtr(serialized_identity, aesKey)
+        const {
+            ciphertext: serialized_keyStore_ciphertext,
+            iv: serialized_keyStore_iv
+        } = await encryptStringWithAesCtr(serialized_keyStore, aesKey)
 
         const payload: RegisterPayload = {
             email: state.email,

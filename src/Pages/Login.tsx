@@ -11,7 +11,7 @@ import {
     Typography
 } from '@mui/material';
 import api, {LoginPayload} from "../services/api";
-import * as mfkdf from '../utils/crypto/mfkdf/mfkdf.min'
+// import * as mfkdf from '../utils/crypto/mfkdf/mfkdf.min'
 import {useStores} from "../models/helpers/useStores";
 import {useApiService} from "../hooks";
 import {useNavigate} from "react-router-dom";
@@ -20,6 +20,7 @@ import {applySnapshot} from "mobx-state-tree";
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import {decryptStringWithAesCtr, importAesKey} from "../utils/crypto/aes/encryption";
+const mfkdf = require('mfkdf/mfkdf');
 
 export interface LoginState {
     email: string;
