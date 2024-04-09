@@ -43,8 +43,8 @@ export const Login = observer(function Login() {
 
 
     const [state, setState] = useState<LoginState>({
-        email: 'test@email.com',
-        password: 'SomePassword784512omgVerySecure',
+        email: '',
+        password: '',
         totp: "",
     });
 

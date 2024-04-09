@@ -57,8 +57,8 @@ export const Register = function () {
     };
 
     const [state, setState] = useState({
-        email: 'test@email.com',
-        password: 'SomePassword784512omgVerySecure',
+        email: '',
+        password: '',
     });
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
