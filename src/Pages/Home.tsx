@@ -219,7 +219,6 @@ export const Home = observer(function Home() {
 
         const deserializedKeyPackage = KeyPackage.deserialize(member.keyPackage)
 
-        console.log(provider.serialize())
         let add_msg
         try {
             add_msg = deserializedGroup.add_member(
@@ -323,7 +322,6 @@ export const Home = observer(function Home() {
 
             for (const commitMessage of commitMessages) {
 
-                console.log(commitMessage.epoch)
 
                 try {
                     deserializedGroup.process_message(provider, stringToUint8Array(commitMessage.message))
@@ -331,7 +329,7 @@ export const Home = observer(function Home() {
                     newEpoch = commitMessage.epoch
                 }catch (error){
                     if (error instanceof Error) {
-                        console.log(error.message)
+                        console.error(error.message)
                     }
                 }
 
