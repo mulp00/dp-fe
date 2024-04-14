@@ -327,7 +327,7 @@ export const Home = observer(function Home() {
                     deserializedGroup.process_message(provider, stringToUint8Array(commitMessage.message))
                     deserializedGroup.merge_pending_commit(provider)
                     newEpoch = commitMessage.epoch
-                }catch (error){
+                } catch (error) {
                     if (error instanceof Error) {
                         console.error(error.message)
                     }
@@ -335,7 +335,7 @@ export const Home = observer(function Home() {
 
             }
 
-            if(newEpoch === -1) break
+            if (newEpoch === -1) break
 
             const aesKey = await importAesKey(authStore.getKeyAsUint8Array());
 
@@ -531,6 +531,7 @@ export const Home = observer(function Home() {
     const deleteGroupItem = async (groupId: string, groupItemId: string) => {
 
         await apiService.deleteGroupItem({
+            groupId: groupId,
             itemId: groupItemId,
         })
 
@@ -735,18 +736,11 @@ export const Home = observer(function Home() {
         }
         if (!isWasmInitialized) {
             initializeWasm().then(async () => {
-                // const provider = Provider.deserialize(userStore.me.keyStore);
 
                 if (!initialLoadDone) {
                     await joinGroups();
                     await loadGroups();
-                    // groupStore.groups.forEach((group) => {
-                    //     const deserializedgroup = MlsGroup.deserialize(group.serializedGroup)
-                    //     console.log(deserializedgroup.export_key(provider, 'exported', new Uint8Array(32).fill(0x30),
-                    //         32)
-                    //     )
-                    //     deserializedgroup.free()
-                    // })
+
                     setInitialLoadDone(true);
                 }
             });
@@ -840,7 +834,13 @@ export const Home = observer(function Home() {
 
 
     const listContent = (
-        <>
+        <Box sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            height: '100%',
+            width: '100%'
+        }}
+        >
             <CardContent sx={{backgroundColor: "#dddddd", height: 40}}>
                 <Grid container>
                     <Grid item xs={10}>
@@ -863,39 +863,67 @@ export const Home = observer(function Home() {
                     </Grid>
                 </Grid>
             </CardContent>
-            <CardContent>
-                <List>
-                    {filteredGroups.map((group, index) => (
-                        <React.Fragment key={group.groupId /* Use group.id instead of index for key if possible */}>
-                            <ListItemButton
-                                selected={(selectedGroupId !== "") && (selectedGroupId === group.groupId)}
-                                onClick={async () => {
-                                    setSelectedGroupId(group.groupId)
-                                    if (selectedGroupId !== "") {
-                                        await loadGroupItems(selectedGroupId)
-                                    }
-                                }}
-                            >
-                                <Container>
-                                    <Typography variant="body2">{group.name}</Typography>
-                                    <Typography variant="body2" color="text.secondary">
-                                        {group.users.length} členů
-                                    </Typography>
-                                </Container>
-                                <IconButton onClick={(event) => {
-                                    event.stopPropagation(); // Prevent ListItem click when IconButton is clicked
-                                    setEditedGroupId(group.groupId);
-                                    setIsEditGroupModalOpen(true);
-                                }}>
-                                    <MoreVertIcon/>
+            <CardContent sx={{height: "100%"}}>
+                {groupStore.groups.length > 0 ?
+                    <List>
+                        {
+                            filteredGroups.map((group, index) => (
+                                <React.Fragment
+                                    key={group.groupId /* Use group.id instead of index for key if possible */}>
+                                    <ListItemButton
+                                        selected={(selectedGroupId !== "") && (selectedGroupId === group.groupId)}
+                                        onClick={async () => {
+                                            setSelectedGroupId(group.groupId)
+                                            if (selectedGroupId !== "") {
+                                                await loadGroupItems(selectedGroupId)
+                                            }
+                                        }}
+                                    >
+                                        <Container>
+                                            <Typography variant="body2">{group.name}</Typography>
+                                            <Typography variant="body2" color="text.secondary">
+                                                {group.users.length} členů
+                                            </Typography>
+                                        </Container>
+                                        <IconButton onClick={(event) => {
+                                            event.stopPropagation(); // Prevent ListItem click when IconButton is clicked
+                                            setEditedGroupId(group.groupId);
+                                            setIsEditGroupModalOpen(true);
+                                        }}>
+                                            <MoreVertIcon/>
+                                        </IconButton>
+                                    </ListItemButton>
+                                    {index < groupStore.groups.length - 1 && <Divider/>}
+                                </React.Fragment>
+                            ))
+                        }
+                    </List>
+                    :
+                    <Box
+                        display="flex"
+                        flexDirection="column"
+                        justifyContent="center"
+                        alignItems="center"
+                        height="60%"
+                        width="100%"
+                    >
+                            <Typography variant="h6" color={theme.palette.grey["400"]}>
+                                Začněte přidáním skupiny
+                            </Typography>
+
+                            <Tooltip
+                                title="Přidat skupinu">
+                                <IconButton  aria-label="add to shopping cart" size="medium"
+                                            onClick={() => setIsCreateGroupModalOpen(true)}>
+                                    <GroupAddIcon/>
                                 </IconButton>
-                            </ListItemButton>
-                            {index < groupStore.groups.length - 1 && <Divider/>}
-                        </React.Fragment>
-                    ))}
-                </List>
+                            </Tooltip>
+                        </Box>
+                }
+
+
             </CardContent>
-        </>
+        </Box>
     );
     const conditionalPadding = isMobile ? 2 : 5; // Conditional padding based on screen size
 
@@ -995,8 +1023,8 @@ export const Home = observer(function Home() {
                         </>
                     ) : (
                         <Grid item xs={3}>
-                            <Card sx={{minHeight: '85vh'}} elevation={3}>
-                                {listContent}
+                            <Card sx={{ height: '85vh', display: 'flex', flexDirection: 'column' }} elevation={3}>
+                            {listContent}
                             </Card>
                         </Grid>
                     )}
@@ -1081,6 +1109,7 @@ export const Home = observer(function Home() {
 
                                 </Box>
                                 :
+                                groupStore.groups.length > 0 &&
                                 <Box
                                     display="flex"
                                     justifyContent="center"
@@ -1088,8 +1117,9 @@ export const Home = observer(function Home() {
                                     height="60%"
                                     width="100%"
                                 >
-                                    <Typography variant="h6" color={theme.palette.grey["400"]}>Vyberte
-                                        Skupinu</Typography>
+                                    <Typography variant="h6" color={theme.palette.grey["400"]}>
+                                        Vyberte Skupinu
+                                    </Typography>
                                 </Box>
 
                             }

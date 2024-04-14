@@ -19,7 +19,7 @@ import {observer} from "mobx-react";
 import {applySnapshot} from "mobx-state-tree";
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
-import {decryptStringWithAesCtr, importAesKey} from "../utils/crypto/aes/encryption";
+import {ab2str, decryptStringWithAesCtr, importAesKey} from "../utils/crypto/aes/encryption";
 const mfkdf = require('mfkdf/mfkdf');
 
 export interface LoginState {
@@ -60,7 +60,7 @@ export const Login = observer(function Login() {
 
         const derive = await mfkdf.derive.key(JSON.parse(policy), {
             password: mfkdf.derive.factors.password(state.password),
-            totp: mfkdf.derive.factors.totp(Number(state.totp), {time: Date.now()}),
+            totp: mfkdf.derive.factors.totp(Number(state.totp)),
         })
 
         const key = derive.key
@@ -69,7 +69,7 @@ export const Login = observer(function Login() {
 
         const payload: LoginPayload = {
             email: state.email,
-            masterKeyHash: key.toString('hex'),
+            masterKeyHash: ab2str(await crypto.subtle.digest("SHA-256", key)),
         };
 
         try {

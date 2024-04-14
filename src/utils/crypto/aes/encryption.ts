@@ -65,7 +65,7 @@ const base64ab = (base64: string): ArrayBuffer => {
 };
 
 // ArrayBuffer to string
-const ab2str = (buffer: ArrayBuffer): string => {
+export const ab2str = (buffer: ArrayBuffer): string => {
     const decoder = new TextDecoder();
     return decoder.decode(buffer);
 };

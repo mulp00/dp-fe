@@ -10,7 +10,7 @@ import {z} from 'zod';
 import api, {RegisterPayload} from "../services/api";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import Visibility from "@mui/icons-material/Visibility";
-import {encryptStringWithAesCtr, importAesKey} from "../utils/crypto/aes/encryption";
+import {ab2str, encryptStringWithAesCtr, importAesKey} from "../utils/crypto/aes/encryption";
 const mfkdf = require('mfkdf/mfkdf');
 
 const RegisterSchema = z.object({
@@ -107,6 +107,7 @@ export const Register = function () {
         ], {size: 32});
 
         setQr(setup.outputs.totp.uri);
+        console.log(setup.outputs.totp.uri)
 
         const aesKey = await importAesKey(setup.key);
 
@@ -121,8 +122,7 @@ export const Register = function () {
 
         const payload: RegisterPayload = {
             email: state.email,
-            password: state.password,
-            masterKey: setup.key.toString('hex'),
+            masterKey: ab2str(await crypto.subtle.digest("SHA-256", setup.key)),
             mfkdfpolicy: {
                 policy: JSON.stringify(setup.policy),
             },
