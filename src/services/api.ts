@@ -22,7 +22,6 @@ export type GroupResponse = {
 
 export interface RegisterPayload {
     email: string;
-    password: string;
     masterKey: string;
     mfkdfpolicy: {
         policy: string;
@@ -171,6 +170,7 @@ export interface UpdateGroupItemPayload {
 }
 
 export interface DeleteGroupItemPayload {
+    groupId: string;
     itemId: string;
 }
 
@@ -211,7 +211,7 @@ class ApiService {
 
     constructor() {
         this.axiosInstance = axios.create({
-            baseURL: 'https://api.shary.cz/',
+            baseURL: 'https://localhost/',
             // withCredentials: true
         });
 
@@ -317,23 +317,17 @@ class ApiService {
 
     public async getPolicy(payload: GetPolicyPayload): Promise<GetPolicyResponse> {
         const encodedEmail = encodeURIComponent(payload.email);
-        return this.axiosInstance.get<GetPolicyResponse>(`/auth/user/${encodedEmail}/policy`, {
-            headers: {
-                "Content-type": "application/ld+json"
-            }
-        }).then(response => response.data);
+        return this.axiosInstance.get<GetPolicyResponse>(`/auth/user/${encodedEmail}/policy`)
+            .then(response => response.data);
     }
 
     public async getMe(): Promise<GetMeResponse> {
-        return this.axiosInstance.get(`/me`, {
-            headers: {
-                "Content-type": "application/ld+json"
-            }
-        }).then(response => response.data);
+        return this.axiosInstance.get(`/me`)
+            .then(response => response.data);
     }
 
     public async createGroup(payload: PostNewGroupPayload): Promise<GroupResponse> {
-        return this.axiosInstance.post<GroupResponse>('/newGroup', payload, {
+        return this.axiosInstance.post<GroupResponse>('/groups', payload, {
             headers: {
                 "Content-type": "application/ld+json"
             }
@@ -341,24 +335,22 @@ class ApiService {
     }
 
     public async getGroupCollection(): Promise<GetGroupCollection> {
-        return this.axiosInstance.get(`/serializedGroupCollection`, {
-            headers: {
-                "Content-type": "application/ld+json"
-            }
-        }).then(response => response.data);
+        return this.axiosInstance.get(`/me/serialized-user-groups`)
+            .then(response => response.data);
     }
 
     public async getUsersByEmail(payload: GetUsersByEmailPayload): Promise<GetUsersByEmailResponse> {
-        const encodedEmail = encodeURIComponent(payload.email);
-        return this.axiosInstance.get<GetUsersByEmailResponse>(`/getByEmail/${encodedEmail}`, {
-            headers: {
-                "Content-type": "application/ld+json"
-            }
-        }).then(response => response.data);
+        return this.axiosInstance.get<GetUsersByEmailResponse>(`/users`,
+            {
+                params: {
+                    email: payload.email
+                }
+            })
+            .then(response => response.data);
     }
 
     public async createWelcomeMessage(payload: PostWelcomeMessage): Promise<string> {
-        return this.axiosInstance.post<string>('/welcomeMessage', payload, {
+        return this.axiosInstance.post<string>(`/groups/${encodeURIComponent(payload.groupId)}/welcome-messages`, payload, {
             headers: {
                 "Content-type": "application/ld+json"
             }
@@ -366,7 +358,8 @@ class ApiService {
     }
 
     public async removeUser(payload: RemoveUserPayload): Promise<string> {
-        return this.axiosInstance.post<string>('/removeUser', payload, {
+        return this.axiosInstance.delete<string>(`/groups/${encodeURIComponent(payload.groupId)}/users/${encodeURIComponent(payload.userId)}`, {
+            data: payload,
             headers: {
                 "Content-type": "application/ld+json"
             }
@@ -374,7 +367,7 @@ class ApiService {
     }
 
     public async leaveGroup(payload: LeaveGroupPayload): Promise<string> {
-        return this.axiosInstance.post<string>('/leaveGroup', payload, {
+        return this.axiosInstance.post<string>(`/groups/${encodeURIComponent(payload.groupId)}/leave`, payload, {
             headers: {
                 "Content-type": "application/ld+json"
             }
@@ -390,7 +383,7 @@ class ApiService {
     // }
 
     public async updateSerializedUserGroup(payload: PatchSerializedUserGroup): Promise<GroupResponse> {
-        return this.axiosInstance.patch<GroupResponse>('/updateSerializedUserGroup', payload, {
+        return this.axiosInstance.patch<GroupResponse>(`/serialized-user-groups/${encodeURIComponent(payload.serializedUserGroupId)}`, payload, {
             headers: {
                 "Content-type": "application/merge-patch+json"
             }
@@ -398,7 +391,7 @@ class ApiService {
     }
 
     public async updateKeyStore(payload: PatchKeyStorePayload): Promise<string> {
-        return this.axiosInstance.patch<string>('/updateKeyStore', payload, {
+        return this.axiosInstance.patch<string>('/me/key-store', payload, {
             headers: {
                 "Content-type": "application/merge-patch+json"
             }
@@ -406,7 +399,7 @@ class ApiService {
     }
 
     public async updateKeyPackage(payload: PatchKeyPackagePayload): Promise<string> {
-        return this.axiosInstance.patch<string>('/updateKeyPackage', payload, {
+        return this.axiosInstance.patch<string>('/me/key-package', payload, {
             headers: {
                 "Content-type": "application/merge-patch+json"
             }
@@ -414,15 +407,12 @@ class ApiService {
     }
 
     public async getGroupsToJoin(): Promise<GetGroupsToJoin> {
-        return this.axiosInstance.get<GetGroupsToJoin>(`/getGroupsToJoin`, {
-            headers: {
-                "Content-type": "application/ld+json"
-            }
-        }).then(response => response.data);
+        return this.axiosInstance.get<GetGroupsToJoin>(`/me/groups-to-join`)
+            .then(response => response.data);
     }
 
     public async createSerializedUserGroupAfterJoin(payload: CreateSerializedUserGroupAfterJoinPayload): Promise<GroupResponse> {
-        return this.axiosInstance.post<GroupResponse>(`/createSerializedUserGroupAfterJoin`, payload, {
+        return this.axiosInstance.post<GroupResponse>(`/serialized-user-groups`, payload,{
             headers: {
                 "Content-type": "application/ld+json"
             }
@@ -430,15 +420,15 @@ class ApiService {
     }
 
     public async getCommitMessages(payload: GetCommitMessagesPayload): Promise<GetCommitMessagesResponse> {
-        return this.axiosInstance.post<GetCommitMessagesResponse>(`/getCommitMessages`, payload, {
-            headers: {
-                "Content-type": "application/ld+json"
-            }
+        return this.axiosInstance.get<GetCommitMessagesResponse>(`/groups/${encodeURIComponent(payload.groupId)}/messages`,  {
+            params: {
+                epoch: payload.epoch
+            },
         }).then(response => response.data);
     }
 
     public async postGeneralCommitMessage(payload: CreateGeneralCommitMessagePayload): Promise<string> {
-        return this.axiosInstance.post<string>(`/createGeneralCommitMessage`, payload, {
+        return this.axiosInstance.post<string>(`/groups/${encodeURIComponent(payload.groupId)}/messages`, payload, {
             headers: {
                 "Content-type": "application/ld+json"
             }
@@ -446,7 +436,7 @@ class ApiService {
     }
 
     public async createNewGroupItem(payload: CreateGroupItemPayload): Promise<GroupItemResponse> {
-        return this.axiosInstance.post<GroupItemResponse>(`/createGroupItem`, payload, {
+        return this.axiosInstance.post<GroupItemResponse>(`/groups/${encodeURIComponent(payload.groupId)}/items`, payload, {
             headers: {
                 "Content-type": "application/ld+json"
             }
@@ -454,7 +444,7 @@ class ApiService {
     }
 
     public async updateGroupItem(payload: UpdateGroupItemPayload): Promise<GroupItemResponse> {
-        return this.axiosInstance.patch<GroupItemResponse>(`/updateGroupItem`, payload, {
+        return this.axiosInstance.patch<GroupItemResponse>(`/groups/${encodeURIComponent(payload.groupId)}/items`, payload, {
             headers: {
                 "Content-type": "application/merge-patch+json"
             }
@@ -462,7 +452,7 @@ class ApiService {
     }
 
     public async deleteGroupItem(payload: DeleteGroupItemPayload): Promise<string> {
-        return this.axiosInstance.post<string>(`/deleteGroupItem`, payload, {
+        return this.axiosInstance.delete(`/groups/${encodeURIComponent(payload.groupId)}/items/${encodeURIComponent(payload.itemId)}`, {
             headers: {
                 "Content-type": "application/ld+json"
             }
@@ -470,7 +460,7 @@ class ApiService {
     }
 
     public async deleteGroup(payload: DeleteGroupPayload): Promise<string> {
-        return this.axiosInstance.post<string>(`/deleteGroup`, payload, {
+        return this.axiosInstance.post<string>(`/groups/${encodeURIComponent(payload.groupId)}`, payload, {
             headers: {
                 "Content-type": "application/ld+json"
             }
@@ -478,11 +468,8 @@ class ApiService {
     }
 
     public async getGroupItems(payload: GetGroupItemsPayload): Promise<GetGroupItemCollectionResponse> {
-        return this.axiosInstance.post<GetGroupItemCollectionResponse>(`/getGroupItems`, payload, {
-            headers: {
-                "Content-type": "application/ld+json"
-            }
-        }).then(response => response.data);
+        return this.axiosInstance.get<GetGroupItemCollectionResponse>(`/groups/${encodeURIComponent(payload.groupId)}/items`)
+            .then(response => response.data);
     }
 
 }
