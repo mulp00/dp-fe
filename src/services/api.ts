@@ -436,7 +436,7 @@ class ApiService {
     }
 
     public async createNewGroupItem(payload: CreateGroupItemPayload): Promise<GroupItemResponse> {
-        return this.axiosInstance.post<GroupItemResponse>(`/groups/${encodeURIComponent(payload.groupId)}/items`, payload, {
+        return this.axiosInstance.post<GroupItemResponse>(`/groups/${encodeURIComponent(payload.groupId)}/group-items`, payload, {
             headers: {
                 "Content-type": "application/ld+json"
             }
@@ -444,7 +444,7 @@ class ApiService {
     }
 
     public async updateGroupItem(payload: UpdateGroupItemPayload): Promise<GroupItemResponse> {
-        return this.axiosInstance.patch<GroupItemResponse>(`/groups/${encodeURIComponent(payload.groupId)}/items`, payload, {
+        return this.axiosInstance.patch<GroupItemResponse>(`/groups/${encodeURIComponent(payload.groupId)}/group-items/${encodeURIComponent(payload.itemId)}`, payload, {
             headers: {
                 "Content-type": "application/merge-patch+json"
             }
@@ -452,7 +452,7 @@ class ApiService {
     }
 
     public async deleteGroupItem(payload: DeleteGroupItemPayload): Promise<string> {
-        return this.axiosInstance.delete(`/groups/${encodeURIComponent(payload.groupId)}/items/${encodeURIComponent(payload.itemId)}`, {
+        return this.axiosInstance.delete(`/groups/${encodeURIComponent(payload.groupId)}/group-items/${encodeURIComponent(payload.itemId)}`, {
             headers: {
                 "Content-type": "application/ld+json"
             }
@@ -460,15 +460,12 @@ class ApiService {
     }
 
     public async deleteGroup(payload: DeleteGroupPayload): Promise<string> {
-        return this.axiosInstance.post<string>(`/groups/${encodeURIComponent(payload.groupId)}`, payload, {
-            headers: {
-                "Content-type": "application/ld+json"
-            }
-        }).then(response => response.data);
+        return this.axiosInstance.delete<string>(`/groups/${encodeURIComponent(payload.groupId)}`)
+            .then(response => response.data);
     }
 
     public async getGroupItems(payload: GetGroupItemsPayload): Promise<GetGroupItemCollectionResponse> {
-        return this.axiosInstance.get<GetGroupItemCollectionResponse>(`/groups/${encodeURIComponent(payload.groupId)}/items`)
+        return this.axiosInstance.get<GetGroupItemCollectionResponse>(`/groups/${encodeURIComponent(payload.groupId)}/group-items`)
             .then(response => response.data);
     }
 
