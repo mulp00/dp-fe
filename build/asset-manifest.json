@@ -1,16 +1,16 @@
 {
   "files": {
     "main.css": "/static/css/main.e6c13ad2.css",
-    "main.js": "/static/js/main.33d714a2.js",
+    "main.js": "/static/js/main.abb77c97.js",
     "static/js/453.69230061.chunk.js": "/static/js/453.69230061.chunk.js",
     "static/media/openmls_wasm_bg.wasm": "/static/media/openmls_wasm_bg.83c29dbb96394a595de5.wasm",
     "index.html": "/index.html",
     "main.e6c13ad2.css.map": "/static/css/main.e6c13ad2.css.map",
-    "main.33d714a2.js.map": "/static/js/main.33d714a2.js.map",
+    "main.abb77c97.js.map": "/static/js/main.abb77c97.js.map",
     "453.69230061.chunk.js.map": "/static/js/453.69230061.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.e6c13ad2.css",
-    "static/js/main.33d714a2.js"
+    "static/js/main.abb77c97.js"
   ]
 }

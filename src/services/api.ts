@@ -211,7 +211,7 @@ class ApiService {
 
     constructor() {
         this.axiosInstance = axios.create({
-            baseURL: 'https://localhost/',
+            baseURL: 'https://api.shary.cz/',
             // withCredentials: true
         });
 
