@@ -24,14 +24,16 @@ import {observer} from "mobx-react";
 import {clear as storageClear} from "../utils/storage";
 import {useDrawer} from "../context/DrawerContext";
 import LogoutIcon from '@mui/icons-material/Logout';
-import apiService from "../services/api";
 import {Identity, Provider} from "../utils/crypto/openmls";
 import {runInAction} from "mobx";
 import LockResetIcon from '@mui/icons-material/LockReset';
 import {ConfirmModal} from "./Modals/ConfirmModal";
 import {encryptStringWithAesCtr, importAesKey} from "../utils/crypto/aes/encryption";
+import {useApiService} from "../hooks";
 
 const ResponsiveAppBar: FC = observer(function ResponsiveAppBar() {
+
+    const apiService = useApiService()
 
     const {authStore, userStore, clear} = useStores()
     const isAuthenticated = authStore.isAuthenticated()

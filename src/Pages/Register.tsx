@@ -1,23 +1,30 @@
 import React, {useEffect, useState} from 'react';
 import {
-    Container, TextField, Button, Typography, OutlinedInput,
-    InputAdornment, IconButton, InputLabel, FormControl, Box, Snackbar, Alert
+    Alert,
+    Box,
+    Button,
+    Container,
+    FormControl,
+    FormHelperText,
+    IconButton,
+    InputAdornment,
+    InputLabel,
+    OutlinedInput,
+    Snackbar,
+    TextField,
+    Typography
 } from '@mui/material';
 import QRCode from 'react-qr-code';
 // import * as mfkdf from '../utils/crypto/mfkdf/mfkdf.min';
 import __wbg_init, {Identity, Provider} from "../utils/crypto/openmls";
 import {z} from 'zod';
-import api, {RegisterPayload} from "../services/api";
+import {RegisterPayload} from "../services/api";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import Visibility from "@mui/icons-material/Visibility";
 import {ab2str, encryptStringWithAesCtr, importAesKey} from "../utils/crypto/aes/encryption";
-const mfkdf = require('mfkdf/mfkdf');
+import {useApiService} from "../hooks";
 
-const RegisterSchema = z.object({
-    email: z.string().email(),
-    password: z.string().min(8),
-    // Include other fields as necessary
-});
+const mfkdf = require('mfkdf/mfkdf');
 
 export const Register = function () {
     const [qr, setQr] = useState<string>('');
@@ -25,6 +32,12 @@ export const Register = function () {
     const [showPassword, setShowPassword] = React.useState(false);
     const [error, setError] = useState<string | null>(null);
     const [isWasmInitialized, setWasmInitialized] = useState(false);
+    const apiService = useApiService()
+    const [errors, setErrors] = useState({
+        email: "",
+        password: "",
+        repeatPassword: ""
+    });
 
     useEffect(() => {
         const initializeWasm = async () => {
@@ -59,34 +72,38 @@ export const Register = function () {
     const [state, setState] = useState({
         email: '',
         password: '',
+        repeatPassword: '',
     });
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const {name, value} = e.target;
         setState(prevState => ({...prevState, [name]: value}));
-        setError(null); // Reset error state on input change
+        setErrors(prevErrors => ({...prevErrors, [name]: null})); // Reset error state on input change
     };
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
-        // Reset error state at the beginning of form submission
-        setError(null);
+        let formErrors = {
+            email: "",
+            password: "",
+            repeatPassword: ""
+        };
 
-        // Validate input using Zod
-        const result = RegisterSchema.safeParse({
-            email: state.email,
-            password: state.password,
-        });
-
-        if (!result.success) {
-            setError("Vyplňte prosím správně všechan pole.");
-            return;
+        if (!z.string().email().safeParse(state.email).success) {
+            formErrors.email = 'Prosím zadejte platnou emailovou adresu.';
         }
 
-        if (!isWasmInitialized) {
-            console.error("WebAssembly is not initialized.");
-            setError("Initialization error, please reload the page.");
+        if (!z.string().min(8).safeParse(state.password).success) {
+            formErrors.password = 'Heslo musí mít nejméně 8 znaků.';
+        }
+
+        if (state.password !== state.repeatPassword) {
+            formErrors.repeatPassword = 'Passwords do not match.';
+        }
+
+        if (formErrors.email || formErrors.password || formErrors.repeatPassword) {
+            setErrors(formErrors);
             return;
         }
 
@@ -136,7 +153,7 @@ export const Register = function () {
         keyPackage.free()
 
         try {
-            await api.register(payload);
+            await apiService.register(payload);
             // Only set registration as complete if the registration succeeds
             setRegistrationComplete(true);
         } catch (error) {
@@ -169,8 +186,8 @@ export const Register = function () {
                                 autoFocus
                                 value={state.email}
                                 onChange={handleChange}
-                                error={!!error}
-                                helperText={error}
+                                error={!!errors.email}
+                                helperText={errors.email}
                             />
                             <FormControl fullWidth margin="normal">
                                 <InputLabel htmlFor="password">Heslo</InputLabel>
@@ -195,8 +212,40 @@ export const Register = function () {
                                             </IconButton>
                                         </InputAdornment>
                                     }
-                                    error={!!error}
+                                    error={!!errors.password}
                                 />
+                                <FormHelperText error={!!errors.password}>
+                                    {errors.password}
+                                </FormHelperText>
+                                <FormControl fullWidth margin="normal">
+                                    <InputLabel htmlFor="repeatPassword">Zopakujte heslo</InputLabel>
+                                    <OutlinedInput
+                                        id="repeatPassword"
+                                        required
+                                        fullWidth
+                                        label="Zopakujte heslo"
+                                        name="repeatPassword"
+                                        value={state.repeatPassword}
+                                        onChange={handleChange}
+                                        type={showPassword ? 'text' : 'password'}
+                                        endAdornment={
+                                            <InputAdornment position="end">
+                                                <IconButton
+                                                    aria-label="toggle password visibility"
+                                                    onClick={handleClickShowPassword}
+                                                    onMouseDown={handleMouseDownPassword}
+                                                    edge="end"
+                                                >
+                                                    {showPassword ? <VisibilityOff/> : <Visibility/>}
+                                                </IconButton>
+                                            </InputAdornment>
+                                        }
+                                        error={!!errors.repeatPassword}
+                                    />
+                                    <FormHelperText error={!!errors.repeatPassword}>
+                                        {errors.repeatPassword}
+                                    </FormHelperText>
+                                </FormControl>
                             </FormControl>
                             <Button type="submit" fullWidth variant="contained" color="primary">
                                 Registrovat

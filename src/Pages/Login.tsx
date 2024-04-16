@@ -56,7 +56,7 @@ export const Login = observer(function Login() {
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
-        const policy = (await api.getPolicy({email: state.email})).policy
+        const policy = (await apiService.getPolicy({email: state.email})).policy
 
         const derive = await mfkdf.derive.key(JSON.parse(policy), {
             password: mfkdf.derive.factors.password(state.password),

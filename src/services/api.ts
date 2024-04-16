@@ -205,17 +205,20 @@ export interface RefreshTokenResponse {
 
 type ErrorHandler = (error: any) => void;
 
-class ApiService {
-    private axiosInstance: AxiosInstance;
+export default class ApiService {
+    axiosInstance: AxiosInstance;
     errorHandlers: ErrorHandler[] = []; // Use the ErrorHandler type here
+    private updateTokenInStore?: (token: string) => void;
 
     constructor() {
         this.axiosInstance = axios.create({
-            baseURL: 'https://api.shary.cz/',
-            // withCredentials: true
+            baseURL: 'https://localhost/',
         });
-
         this.initializeInterceptors();
+    }
+
+    public setTokenUpdater(updateToken: (token: string) => void): void {
+        this.updateTokenInStore = updateToken
     }
 
     public setAuthToken(token: string): void {
@@ -257,6 +260,7 @@ class ApiService {
                                 const newToken = await this.refreshAuthToken();
 
                                 this.setAuthToken(newToken.token);
+                                this.updateTokenInStore && this.updateTokenInStore(newToken.token);
 
                                 originalRequest.headers['Authorization'] = `BEARER ${newToken.token}`;
                                 return this.axiosInstance(originalRequest);
@@ -304,7 +308,7 @@ class ApiService {
                 "Content-type": "application/ld+json"
             },
         });
-    } // TODO prendej ten refresh token do cookiny, kdyz se uzivatel prihlasi dostane refresh token v cookine a jwt v response, kdyz vyprsi tak se udela ten request na BE token/refresh s withCredentials: true coz posle refresh token, pak bude potreba taky udelat logout pro smazani ty cookiny
+    }
 
     public async login(payload: LoginPayload): Promise<LoginResponse> {
         return this.axiosInstance.post<LoginResponse>('/auth/login', payload, {
@@ -412,7 +416,7 @@ class ApiService {
     }
 
     public async createSerializedUserGroupAfterJoin(payload: CreateSerializedUserGroupAfterJoinPayload): Promise<GroupResponse> {
-        return this.axiosInstance.post<GroupResponse>(`/serialized-user-groups`, payload,{
+        return this.axiosInstance.post<GroupResponse>(`/serialized-user-groups`, payload, {
             headers: {
                 "Content-type": "application/ld+json"
             }
@@ -420,7 +424,7 @@ class ApiService {
     }
 
     public async getCommitMessages(payload: GetCommitMessagesPayload): Promise<GetCommitMessagesResponse> {
-        return this.axiosInstance.get<GetCommitMessagesResponse>(`/groups/${encodeURIComponent(payload.groupId)}/messages`,  {
+        return this.axiosInstance.get<GetCommitMessagesResponse>(`/groups/${encodeURIComponent(payload.groupId)}/messages`, {
             params: {
                 epoch: payload.epoch
             },
@@ -471,5 +475,3 @@ class ApiService {
 
 }
 
-const apiService = new ApiService();
-export default apiService;
