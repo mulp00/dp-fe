@@ -8,7 +8,7 @@ import {
     Box,
     Card,
     CardContent,
-    Container,
+    Container, createTheme,
     Divider,
     Drawer,
     Grid,
@@ -65,7 +65,6 @@ export const Home = observer(function Home() {
     const [searchTerm, setSearchTerm] = useState('');
 
     const [feedBack, setFeedback] = useState<{ type: "success" | "error", message: string } | null | undefined>()
-
 
     function stringToUint8Array(inputString: string): Uint8Array {
         const numberArray = inputString.split(',').map(Number);
@@ -1065,6 +1064,7 @@ export const Home = observer(function Home() {
                                     {groupStore.getGroupById(selectedGroupId)?.groupItems && groupStore.getGroupById(selectedGroupId)?.groupItems.length > 0
                                         ?
                                         <DataGrid
+                                            localeText={csCZ.components.MuiDataGrid.defaultProps.localeText}
                                             sx={{
                                                 borderWidth: 0,
                                                 "&.MuiDataGrid-root .MuiDataGrid-cell:focus-within": {
