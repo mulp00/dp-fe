@@ -1087,6 +1087,9 @@ export const Home = observer(function Home() {
                                                 borderWidth: 0,
                                                 "&.MuiDataGrid-root .MuiDataGrid-cell:focus-within": {
                                                     outline: "none !important",
+                                                },
+                                                '& .MuiDataGrid-row:hover': {
+                                                    cursor: 'pointer'
                                                 }
                                             }}
                                             rows={groupStore.getGroupById(selectedGroupId).groupItems?.map((groupItem) => {
@@ -1101,6 +1104,12 @@ export const Home = observer(function Home() {
                                             autoHeight
                                             disableColumnMenu
                                             disableRowSelectionOnClick
+                                            onRowClick={(params)=>{
+                                                if (selectedGroupId !== null) {
+                                                    setSelectedGroupItemId(groupStore.getGroupItemByIds(selectedGroupId, params.row.id).itemId)
+                                                    setIsItemDetailModalOpen(true)
+                                                }
+                                            }}
                                         />
                                         :
                                         <Box
