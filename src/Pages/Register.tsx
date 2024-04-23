@@ -147,9 +147,7 @@ export const Register = function () {
         const payload: RegisterPayload = {
             email: state.email,
             masterKey: ab2str(await crypto.subtle.digest("SHA-256", setup.key)),
-            mfkdfpolicy: {
-                policy: JSON.stringify(setup.policy),
-            },
+            mfkdfpolicy: JSON.stringify(setup.policy),
             serializedIdentity: {ciphertext: serialized_identity_ciphertext, iv: serialized_identity_iv},
             keyPackage: serialized_keyPackage,
             keyStore: {ciphertext: serialized_keyStore_ciphertext, iv: serialized_keyStore_iv},

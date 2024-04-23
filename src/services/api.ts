@@ -1,5 +1,5 @@
 import axios, {AxiosInstance} from 'axios';
-import {Instance} from "mobx-state-tree";
+import * as https from 'https'
 
 export interface Member {
     id: string;
@@ -23,9 +23,7 @@ export type GroupResponse = {
 export interface RegisterPayload {
     email: string;
     masterKey: string;
-    mfkdfpolicy: {
-        policy: string;
-    };
+    mfkdfpolicy: string;
     serializedIdentity: { ciphertext: string, iv: string; };
     keyPackage: string;
     keyStore: { ciphertext: string, iv: string; };
@@ -44,9 +42,6 @@ export interface GetPolicyPayload {
     email: string;
 }
 
-export interface GetPolicyResponse {
-    policy: string;
-}
 
 export interface GetMeResponse {
     serializedIdentity: { ciphertext: string, iv: string; };
@@ -212,7 +207,7 @@ export default class ApiService {
 
     constructor() {
         this.axiosInstance = axios.create({
-            baseURL: 'https://api.shary.cz/',
+            baseURL: 'https://localhost',
         });
         this.initializeInterceptors();
     }
@@ -319,9 +314,9 @@ export default class ApiService {
         }).then(response => response.data);
     }
 
-    public async getPolicy(payload: GetPolicyPayload): Promise<GetPolicyResponse> {
+    public async getPolicy(payload: GetPolicyPayload): Promise<string> {
         const encodedEmail = encodeURIComponent(payload.email);
-        return this.axiosInstance.get<GetPolicyResponse>(`/auth/user/${encodedEmail}/policy`)
+        return this.axiosInstance.get<string>(`/auth/user/${encodedEmail}/policy`)
             .then(response => response.data);
     }
 

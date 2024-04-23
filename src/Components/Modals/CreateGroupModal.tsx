@@ -47,6 +47,7 @@ export const CreateGroupModal = observer(function CreateGroupModal({ isOpen, onH
             await onHandleSubmit(groupName);
             onFeedback('success', 'Skupina vytvořena');
         } catch (error) {
+            console.error(error)
             onFeedback('error', 'Něco se pokazilo');
         } finally {
             setLoading(false);

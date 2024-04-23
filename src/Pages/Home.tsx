@@ -59,7 +59,7 @@ export const Home = observer(function Home() {
 
     const [selectedGroupId, setSelectedGroupId] = useState<string>("")
     const [editedGroupId, setEditedGroupId] = useState<string>("")
-    const [addItemType, setAddItemType] = useState<"login"|"card">("login")
+    const [addItemType, setAddItemType] = useState<"login" | "card">("login")
     const [selectedGroupItemId, setSelectedGroupItemId] = useState<string>("")
 
     const [searchTerm, setSearchTerm] = useState('');
@@ -205,6 +205,8 @@ export const Home = observer(function Home() {
     }
 
     const addUser = async (member: MemberSnapshotIn, groupId: string) => {
+
+        await catchUpOnEpoch()
 
         const groupSnapshot = getSnapshot(groupStore.getGroupById(groupId))
         const meSnapshot = getSnapshot(userStore.me)
@@ -368,6 +370,9 @@ export const Home = observer(function Home() {
     }
 
     const removeUser = async (member: MemberSnapshotIn, groupId: string) => {
+
+        await catchUpOnEpoch()
+
         const groupSnapshot = getSnapshot(groupStore.getGroupById(groupId))
         const meSnapshot = getSnapshot(userStore.me)
 
@@ -445,6 +450,8 @@ export const Home = observer(function Home() {
     }
     const leaveGroup = async (groupId: string) => {
 
+        setEditedGroupId("")
+        setSelectedGroupId("")
         const meSnapshot = getSnapshot(userStore.me)
 
         const groupSnapshot = getSnapshot(groupStore.getGroupById(groupId))
@@ -467,6 +474,7 @@ export const Home = observer(function Home() {
 
         deserializedGroup.merge_pending_commit(provider)
 
+
         const keyStoreToUpdate = JSON.stringify({...JSON.parse(provider.serialize()), ...JSON.parse(meSnapshot.keyStore)})
         await updateKeyStore(keyStoreToUpdate)
 
@@ -486,6 +494,8 @@ export const Home = observer(function Home() {
     }
 
     const createNewGroupItem = async (groupId: string, groupItem: GroupItemSnapshotIn) => {
+
+        await catchUpOnEpoch()
 
         const groupSnapshot = getSnapshot(groupStore.getGroupById(groupId))
 
@@ -512,6 +522,8 @@ export const Home = observer(function Home() {
         return true
     }
     const updateGroupItem = async (groupId: string, groupItem: GroupItemSnapshotIn) => {
+
+        await catchUpOnEpoch()
 
         const groupSnapshot = getSnapshot(groupStore.getGroupById(groupId))
         const encryptedGroupItem = await encryptGroupItem(groupId, groupItem)
@@ -541,6 +553,8 @@ export const Home = observer(function Home() {
     }
 
     const deleteGroup = async (groupId: string) => {
+        setEditedGroupId("")
+        setSelectedGroupId("")
 
         await apiService.deleteGroup({groupId: groupId})
 
@@ -551,6 +565,8 @@ export const Home = observer(function Home() {
     }
 
     const rotateGroupKey = async (groupId: string) => {
+
+        await catchUpOnEpoch()
 
         const groupSnapshot = getSnapshot(groupStore.getGroupById(groupId))
         const meSnapshot = getSnapshot(userStore.me)
@@ -577,7 +593,7 @@ export const Home = observer(function Home() {
                 ...JSON.parse(provider.serialize()),
                 ...JSON.parse(meSnapshot.keyStore)
             }
-            )
+        )
         await updateKeyStore(keyStoreToUpdate)
         runInAction(() => {
             userStore.me.setKeyStore(keyStoreToUpdate)
@@ -594,10 +610,10 @@ export const Home = observer(function Home() {
 
         const updateSerializedUserGroupResponse = await apiService.updateSerializedUserGroup(
             {
-            serializedUserGroupId: groupSnapshot.serializedUserGroupId,
-            serializedUserGroup: {ciphertext: serializedUserGroup_ciphertext, iv: serializedUserGroup_iv},
-            epoch: groupSnapshot.epoch + 1,
-        });
+                serializedUserGroupId: groupSnapshot.serializedUserGroupId,
+                serializedUserGroup: {ciphertext: serializedUserGroup_ciphertext, iv: serializedUserGroup_iv},
+                epoch: groupSnapshot.epoch + 1,
+            });
 
         runInAction(() => {
             groupStore.updateGroup({
@@ -611,6 +627,8 @@ export const Home = observer(function Home() {
                 updateGroupItem(groupId, groupItem);
             }
         });
+
+        await loadGroupItems(groupId)
 
         provider.free()
         identity.free()
@@ -911,18 +929,18 @@ export const Home = observer(function Home() {
                         height="60%"
                         width="100%"
                     >
-                            <Typography variant="h6" color={theme.palette.grey["400"]}>
-                                Začněte přidáním skupiny
-                            </Typography>
+                        <Typography variant="h6" color={theme.palette.grey["400"]}>
+                            Začněte přidáním skupiny
+                        </Typography>
 
-                            <Tooltip
-                                title="Přidat skupinu">
-                                <IconButton  aria-label="add to shopping cart" size="medium"
-                                            onClick={() => setIsCreateGroupModalOpen(true)}>
-                                    <GroupAddIcon/>
-                                </IconButton>
-                            </Tooltip>
-                        </Box>
+                        <Tooltip
+                            title="Přidat skupinu">
+                            <IconButton aria-label="add to shopping cart" size="medium"
+                                        onClick={() => setIsCreateGroupModalOpen(true)}>
+                                <GroupAddIcon/>
+                            </IconButton>
+                        </Tooltip>
+                    </Box>
                 }
 
 
@@ -1027,8 +1045,8 @@ export const Home = observer(function Home() {
                         </>
                     ) : (
                         <Grid item xs={3}>
-                            <Card sx={{ height: '85vh', display: 'flex', flexDirection: 'column' }} elevation={3}>
-                            {listContent}
+                            <Card sx={{height: '85vh', display: 'flex', flexDirection: 'column'}} elevation={3}>
+                                {listContent}
                             </Card>
                         </Grid>
                     )}
@@ -1037,7 +1055,7 @@ export const Home = observer(function Home() {
                     <Grid item xs={isMobile ? 12 : 9}>
 
                         <Card sx={{height: '100%', width: '100%'}} elevation={3}>
-                            {(selectedGroupId !== null) && (selectedGroupId !== "")
+                            {(selectedGroupId !== "")
                                 ?
                                 <Box
                                     height="100%"

@@ -84,6 +84,14 @@ export const EditGroupModal = observer(function EditGroupModal(props: EditGroupM
             props.onFeedback("error", "Něco se nepovedlo")
         }
     };
+    const handleLeaveGroup = async () => {
+        try {
+            await props.onHandleLeaveGroup(props.groupId);
+            closeModal()
+        } catch {
+            props.onFeedback("error", "Něco se nepovedlo")
+        }
+    }
 
 
     const closeModal = () => {
@@ -163,7 +171,7 @@ export const EditGroupModal = observer(function EditGroupModal(props: EditGroupM
                 <ConfirmModal
                     isOpen={isLeaveGroupModalOpen}
                     onHandleClose={() => setIsLeaveGroupModalOpen(false)}
-                    onHandleSubmit={() => props.onHandleLeaveGroup(props.groupId)}
+                    onHandleSubmit={handleLeaveGroup}
                     title="Opustit skupinu"
                     text="Opravdu checete opsutit skupinu? Nebude znovu možné se do ní přidat! Pokud se budete chtít do skupiny znovu přidat, požádejte jiného člena o odebrání."
                     confirmText="Opustit"
