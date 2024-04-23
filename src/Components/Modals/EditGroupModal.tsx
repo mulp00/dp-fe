@@ -1,18 +1,16 @@
 import React, {useMemo, useState} from 'react';
 import {observer} from "mobx-react";
 import {Autocomplete, Box, Button, IconButton, Modal, Stack, TextField, Typography} from "@mui/material";
-import {User, UserSnapshotIn} from "../../models/User/UserModel";
+import {UserSnapshotIn} from "../../models/User/UserModel";
 import {DataGrid, GridColDef, GridRenderCellParams} from "@mui/x-data-grid";
 import {useApiService} from "../../hooks";
 import {Member, MemberSnapshotIn} from "../../models/User/MemberModel";
 import LockResetIcon from '@mui/icons-material/LockReset';
 import {ConfirmModal} from "./ConfirmModal";
-import {Group as MlsGroup, Identity, Provider} from "../../utils/crypto/openmls";
 import {useStores} from "../../models/helpers/useStores";
-import {runInAction} from "mobx";
 import CloseIcon from "@mui/icons-material/Close";
-import {Group} from "../../models/Group/GroupModel";
 import {getSnapshot} from "mobx-state-tree";
+import {csCZ} from "@mui/x-data-grid/locales";
 
 export type EditGroupModalProps = {
     isOpen: boolean;
@@ -24,7 +22,7 @@ export type EditGroupModalProps = {
     onHandleLeaveGroup: (groupId: string) => Promise<boolean>
     onFeedback: (type: 'success' | 'error', message: string) => void;
     onHandleGroupDelete: (groupId: string) => Promise<void>
-    onRotateGroupKey: (groupId: string)=>Promise<void>
+    onRotateGroupKey: (groupId: string) => Promise<void>
 };
 
 export const EditGroupModal = observer(function EditGroupModal(props: EditGroupModalProps) {
@@ -69,11 +67,11 @@ export const EditGroupModal = observer(function EditGroupModal(props: EditGroupM
 
     const handleRemoveUserConfirmation = async () => {
         if (userToRemove) {
-            try{
+            try {
                 await props.onHandleRemoveUser(userToRemove, props.groupId);
                 setIsRemoveUserFromGroupModalOpen(false);
                 setUserToRemove(null);
-            }catch {
+            } catch {
                 props.onFeedback("error", "Něco se nepovedlo")
             }
         }
@@ -82,7 +80,7 @@ export const EditGroupModal = observer(function EditGroupModal(props: EditGroupM
         try {
             await props.onHandleGroupDelete(props.groupId);
             closeModal()
-        }catch {
+        } catch {
             props.onFeedback("error", "Něco se nepovedlo")
         }
     };
@@ -95,7 +93,6 @@ export const EditGroupModal = observer(function EditGroupModal(props: EditGroupM
             setSelectedUser(null)
         }, 300); // Delay to allow modal close animation
     };
-
 
 
     const style = {
@@ -217,6 +214,7 @@ export const EditGroupModal = observer(function EditGroupModal(props: EditGroupM
                     </Stack>
                     <Box style={{height: 400, width: '100%'}}>
                         <DataGrid
+                            localeText={csCZ.components.MuiDataGrid.defaultProps.localeText}
                             disableColumnSelector
                             rows={rows}
                             columns={columns}
