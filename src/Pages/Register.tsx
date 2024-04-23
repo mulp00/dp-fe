@@ -2,8 +2,8 @@ import React, {useEffect, useState} from 'react';
 import {
     Alert,
     Box,
-    Button,
-    Container,
+    Button, Chip, CircularProgress,
+    Container, Divider,
     FormControl,
     FormHelperText,
     IconButton,
@@ -23,21 +23,25 @@ import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import Visibility from "@mui/icons-material/Visibility";
 import {ab2str, encryptStringWithAesCtr, importAesKey} from "../utils/crypto/aes/encryption";
 import {useApiService} from "../hooks";
+import {useNavigate} from "react-router-dom";
 
 const mfkdf = require('mfkdf/mfkdf');
 
 export const Register = function () {
     const [qr, setQr] = useState<string>('');
-    const [registrationComplete, setRegistrationComplete] = useState(false);
+    const [registrationState, setRegistrationState] = useState<"initial"|"loading"|"complete">("initial");
     const [showPassword, setShowPassword] = React.useState(false);
     const [error, setError] = useState<string | null>(null);
     const [isWasmInitialized, setWasmInitialized] = useState(false);
+    const [isActive, setIsActive] = useState<boolean>(false)
     const apiService = useApiService()
     const [errors, setErrors] = useState({
         email: "",
         password: "",
         repeatPassword: ""
     });
+
+    const navigate = useNavigate()
 
     useEffect(() => {
         const initializeWasm = async () => {
@@ -52,7 +56,7 @@ export const Register = function () {
 
     useEffect(() => {
         const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-            if (registrationComplete) {
+            if (registrationState === "complete") {
                 e.preventDefault();
                 e.returnValue = 'Jste si jistí, že jste načetli QR kód?';
             }
@@ -61,7 +65,7 @@ export const Register = function () {
         window.addEventListener('beforeunload', handleBeforeUnload);
 
         return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-    }, [registrationComplete]);
+    }, [registrationState]);
 
     const handleClickShowPassword = () => setShowPassword((show) => !show);
 
@@ -83,6 +87,7 @@ export const Register = function () {
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+        setRegistrationState("loading")
 
         let formErrors = {
             email: "",
@@ -104,6 +109,8 @@ export const Register = function () {
 
         if (formErrors.email || formErrors.password || formErrors.repeatPassword) {
             setErrors(formErrors);
+            setRegistrationState("initial")
+
             return;
         }
 
@@ -155,7 +162,7 @@ export const Register = function () {
         try {
             await apiService.register(payload);
             // Only set registration as complete if the registration succeeds
-            setRegistrationComplete(true);
+            setRegistrationState("complete");
         } catch (error) {
             const typedError = error as { response?: { status?: number, data?: any } };
             if (typedError.response && typedError.response.status === 409) {
@@ -165,13 +172,14 @@ export const Register = function () {
                 // Handle other errors
                 setError('An unexpected error occurred. Please try again.');
             }
+            setRegistrationState("initial")
         }
     }
 
     return (
         <Box display="flex" alignItems="center" justifyContent="center" minHeight="75vh">
             <Container component="main" maxWidth="xs">
-                {!registrationComplete ? (
+                {(registrationState === "initial" || registrationState === "loading") && (
                     <>
                         <Typography component="h1" variant="h5">Registrace</Typography>
                         <form onSubmit={handleSubmit}>
@@ -217,50 +225,67 @@ export const Register = function () {
                                 <FormHelperText error={!!errors.password}>
                                     {errors.password}
                                 </FormHelperText>
-                                <FormControl fullWidth margin="normal">
-                                    <InputLabel htmlFor="repeatPassword">Zopakujte heslo</InputLabel>
-                                    <OutlinedInput
-                                        id="repeatPassword"
-                                        required
-                                        fullWidth
-                                        label="Zopakujte heslo"
-                                        name="repeatPassword"
-                                        value={state.repeatPassword}
-                                        onChange={handleChange}
-                                        type={showPassword ? 'text' : 'password'}
-                                        endAdornment={
-                                            <InputAdornment position="end">
-                                                <IconButton
-                                                    aria-label="toggle password visibility"
-                                                    onClick={handleClickShowPassword}
-                                                    onMouseDown={handleMouseDownPassword}
-                                                    edge="end"
-                                                >
-                                                    {showPassword ? <VisibilityOff/> : <Visibility/>}
-                                                </IconButton>
-                                            </InputAdornment>
-                                        }
-                                        error={!!errors.repeatPassword}
-                                    />
-                                    <FormHelperText error={!!errors.repeatPassword}>
-                                        {errors.repeatPassword}
-                                    </FormHelperText>
-                                </FormControl>
                             </FormControl>
-                            <Button type="submit" fullWidth variant="contained" color="primary">
-                                Registrovat
-                            </Button>
+                            <FormControl fullWidth margin="normal">
+                                <InputLabel htmlFor="repeatPassword">Zopakujte heslo</InputLabel>
+                                <OutlinedInput
+                                    id="repeatPassword"
+                                    required
+                                    fullWidth
+                                    label="Zopakujte heslo"
+                                    name="repeatPassword"
+                                    value={state.repeatPassword}
+                                    onChange={handleChange}
+                                    type={showPassword ? 'text' : 'password'}
+                                    endAdornment={
+                                        <InputAdornment position="end">
+                                            <IconButton
+                                                aria-label="toggle password visibility"
+                                                onClick={handleClickShowPassword}
+                                                onMouseDown={handleMouseDownPassword}
+                                                edge="end"
+                                            >
+                                                {showPassword ? <VisibilityOff/> : <Visibility/>}
+                                            </IconButton>
+                                        </InputAdornment>
+                                    }
+                                    error={!!errors.repeatPassword}
+                                />
+                                <FormHelperText error={!!errors.repeatPassword}>
+                                    {errors.repeatPassword}
+                                </FormHelperText>
+                            </FormControl>
+                            <FormControl fullWidth margin="normal">
+                                <Button type="submit" fullWidth variant="contained" color="primary"
+                                        disabled={registrationState === "loading"}>
+                                    Registrovat
+                                </Button>
+                            </FormControl>
                             {error && <Snackbar open={true} autoHideDuration={6000}>
                                 <Alert severity="error">{error}</Alert>
                             </Snackbar>}
                         </form>
+                        <Divider sx={{marginY: 3}}>
+                            <Chip label="Máte již účet?" size="small"/>
+                        </Divider>
+                        <Button fullWidth variant="outlined" color="primary" onClick={() => navigate('/login')}>
+                            Přihlášení
+                        </Button>
                     </>
-                ) : (
+                )}
+
+                {
+                registrationState === "complete" &&
+                    (
                     <>
                         <Typography variant="h4" gutterBottom>QR Kód</Typography>
                         <Typography variant="body1" gutterBottom>Ujistěte se, že jste si QR kód uložili. Potřebujete ho
                             pro další ověření.</Typography>
                         <QRCode value={qr}/>
+                        <Divider sx={{marginY: 3}}/>
+                        <Button fullWidth variant="outlined" color="primary" onClick={() => navigate('/login')}>
+                            Přihlášení
+                        </Button>
                     </>
                 )}
             </Container>

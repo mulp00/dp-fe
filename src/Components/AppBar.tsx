@@ -89,15 +89,16 @@ const ResponsiveAppBar: FC = observer(function ResponsiveAppBar() {
 
         const provider = Provider.deserialize(userStore.me.keyStore);
         const identity = Identity.deserialize(provider, userStore.me.serializedIdentity);
-        const keyStoreToUpdate = JSON.stringify({...JSON.parse(provider.serialize()), ...JSON.parse(userStore.me.keyStore)})
-
 
         const newKeyPackage = identity.key_package(provider)
 
+        const keyStoreToUpdate = JSON.stringify(
+            {
+                ...JSON.parse(provider.serialize()),
+                ...JSON.parse(userStore.me.keyStore)
+            }
+        )
         await apiService.updateKeyPackage({keyPackage: newKeyPackage.serialize()})
-        runInAction(() => {
-            userStore.me.setKeyStore(keyStoreToUpdate)
-        });
 
         await updateKeyStore(keyStoreToUpdate)
         runInAction(() => {

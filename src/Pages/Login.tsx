@@ -1,8 +1,8 @@
 import React, {useState} from 'react';
 import {
     Box,
-    Button,
-    Container, FormControl,
+    Button, Chip,
+    Container, Divider, FormControl,
     IconButton,
     InputAdornment,
     InputLabel,
@@ -20,6 +20,7 @@ import {applySnapshot} from "mobx-state-tree";
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import {ab2str, decryptStringWithAesCtr, importAesKey} from "../utils/crypto/aes/encryption";
+
 const mfkdf = require('mfkdf/mfkdf');
 
 export interface LoginState {
@@ -139,21 +140,30 @@ export const Login = observer(function Login() {
                             }
                         />
                     </FormControl>
-
-                    <TextField
-                        variant="outlined"
-                        margin="normal"
-                        required
-                        fullWidth
-                        label="Ověřovací kód"
-                        name="totp"
-                        value={state.totp}
-                        onChange={handleChange}
-                    />
+                    <FormControl fullWidth>
+                        <TextField
+                            variant="outlined"
+                            margin="normal"
+                            required
+                            fullWidth
+                            label="Ověřovací kód"
+                            name="totp"
+                            value={state.totp}
+                            onChange={handleChange}
+                        />
+                    </FormControl>
+                    <FormControl fullWidth margin="normal">
                     <Button type="submit" fullWidth variant="contained" color="primary">
-                        Login
-                    </Button>
+                            Přihlásit
+                        </Button>
+                    </FormControl>
                 </form>
+                <Divider sx={{marginY: 3}}>
+                    <Chip label="Nemáte účet?" size="small" />
+                </Divider>
+                <Button  fullWidth variant="outlined" color="primary" onClick={()=>navigate('/register')}>
+                    Registrovat
+                </Button>
             </Container>
         </Box>
     );

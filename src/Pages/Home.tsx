@@ -40,7 +40,7 @@ import {AddItemModal} from "../Components/Modals/AddItemModal";
 import {GroupItemSnapshotIn} from "../models/GroupItem/GroupItemModel";
 import {decryptStringWithAesCtr, encryptStringWithAesCtr, importAesKey} from "../utils/crypto/aes/encryption";
 import {Group, GroupSnapshotIn} from "../models/Group/GroupModel";
-import {GroupResponse} from "../services/api";
+import {csCZ} from "@mui/x-data-grid/locales";
 
 export const Home = observer(function Home() {
     const {userStore, groupStore, authStore} = useStores()
@@ -59,7 +59,7 @@ export const Home = observer(function Home() {
 
     const [selectedGroupId, setSelectedGroupId] = useState<string>("")
     const [editedGroupId, setEditedGroupId] = useState<string>("")
-    const [addItemType, setAddItemType] = useState<string>("")
+    const [addItemType, setAddItemType] = useState<"login"|"card">("login")
     const [selectedGroupItemId, setSelectedGroupItemId] = useState<string>("")
 
     const [searchTerm, setSearchTerm] = useState('');
@@ -573,8 +573,12 @@ export const Home = observer(function Home() {
 
         deserializedGroup.merge_pending_commit(provider)
 
-
-        const keyStoreToUpdate = JSON.stringify({...JSON.parse(provider.serialize()), ...JSON.parse(meSnapshot.keyStore)})
+        const keyStoreToUpdate = JSON.stringify(
+            {
+                ...JSON.parse(provider.serialize()),
+                ...JSON.parse(meSnapshot.keyStore)
+            }
+            )
         await updateKeyStore(keyStoreToUpdate)
         runInAction(() => {
             userStore.me.setKeyStore(keyStoreToUpdate)
@@ -589,7 +593,8 @@ export const Home = observer(function Home() {
             iv: serializedUserGroup_iv
         } = await encryptStringWithAesCtr(serializedDeserializedUserGroup, aesKey)
 
-        const updateSerializedUserGroupResponse = await apiService.updateSerializedUserGroup({
+        const updateSerializedUserGroupResponse = await apiService.updateSerializedUserGroup(
+            {
             serializedUserGroupId: groupSnapshot.serializedUserGroupId,
             serializedUserGroup: {ciphertext: serializedUserGroup_ciphertext, iv: serializedUserGroup_iv},
             epoch: groupSnapshot.epoch + 1,
@@ -805,7 +810,7 @@ export const Home = observer(function Home() {
         {field: 'description', headerName: 'Popis', width: 130, flex: 1},
         {
             field: 'details',
-            headerName: 'Detail',
+            headerName: ' ',
             sortable: false,
             renderCell: (params: GridRenderCellParams) => (
                 <IconButton

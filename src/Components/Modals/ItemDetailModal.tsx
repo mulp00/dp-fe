@@ -149,15 +149,6 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                             error={!!errors?.name}
                             helperText={errors?.name || ''}
                         />
-                        <TextField
-                            fullWidth
-                            margin="normal"
-                            label="Popis"
-                            value={details?.description || ''}
-                            onChange={handleChange('description')}
-                            error={!!errors?.description}
-                            helperText={errors?.description || ''}
-                        />
                         {groupItemSnapshot.type === 'login' && (
                             <>
                                 <TextField
@@ -177,6 +168,15 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                                     onChange={handleChange('password')}
                                     error={!!errors?.password}
                                     helperText={errors?.password || ''}
+                                />
+                                <TextField
+                                    fullWidth
+                                    margin="normal"
+                                    label="Popis"
+                                    value={details?.description || ''}
+                                    onChange={handleChange('description')}
+                                    error={!!errors?.description}
+                                    helperText={errors?.description || ''}
                                 />
                                 <TextField
                                     fullWidth
@@ -226,6 +226,15 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                                     onChange={handleChange('cardholderName')}
                                     error={!!errors?.cardholderName}
                                     helperText={errors?.cardholderName || ''}
+                                />
+                                <TextField
+                                    fullWidth
+                                    margin="normal"
+                                    label="Popis"
+                                    value={details?.description || ''}
+                                    onChange={handleChange('description')}
+                                    error={!!errors?.description}
+                                    helperText={errors?.description || ''}
                                 />
                                 <TextField
                                     fullWidth

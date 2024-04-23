@@ -10,7 +10,7 @@ interface AddItemModalProps {
     isOpen: boolean;
     onHandleClose: () => void;
     groupId: string;
-    type: string;
+    type: "login"|"card";
     onItemCreate: (groupId: string, groupItem: GroupItemSnapshotIn) => Promise<boolean>;
     onFeedback: (type: 'success' | 'error', message: string) => void;
 }
@@ -54,7 +54,6 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
     const [errors, setErrors] = useState<Record<string, string>>({});
 
     const inputRef = useRef<HTMLInputElement>(null);
-
 
     useEffect(() => {
         if (isOpen) {
@@ -208,7 +207,7 @@ export const AddItemModal: React.FC<AddItemModalProps> = ({
                     <CloseIcon/>
                 </IconButton>
                 <Typography id="modal-title" variant="h6" component="h2">
-                    Přidat novou položku
+                    {type === "login"? "Přidat přihlašovací údaje" : "Přidat platební kartu"}
                 </Typography>
                 <Box component="form" noValidate autoComplete="off" sx={{mt: 2}}>
                     <TextField
