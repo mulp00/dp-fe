@@ -207,7 +207,7 @@ export default class ApiService {
 
     constructor() {
         this.axiosInstance = axios.create({
-            baseURL: 'https://localhost',
+            baseURL: 'https://api.shary.cz/',
         });
         this.initializeInterceptors();
     }
